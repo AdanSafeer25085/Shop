@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+.masonry-column {
+  background-clip: padding-box;
+}
+.masonry-column {
+  background-clip: padding-box;
+}
+.masonry-column img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.5rem;
+}
+
+
