@@ -134,6 +134,7 @@ export default function Checkout() {
               {paymentNumber && (
                 <p className="text-yellow-300 font-semibold">
                   Send payment to: {paymentNumber}
+                  <br />
                   Name: Adil Ameer
                 </p>
                 
