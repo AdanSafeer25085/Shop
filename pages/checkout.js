@@ -28,9 +28,9 @@ export default function Checkout() {
 
   useEffect(() => {
     if (formData.paymentMethod === "easypaisa") {
-      setPaymentNumber("03439200329");
+      setPaymentNumber("03007029003");
     } else if (formData.paymentMethod === "jazzcash") {
-      setPaymentNumber("03278625085");
+      setPaymentNumber("03007029003");
     } else {
       setPaymentNumber("");
     }
@@ -42,7 +42,7 @@ export default function Checkout() {
 
   const handleOrder = () => {
     const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: $${product.price}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
-    const url = `https://wa.me/923124165364?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
 
@@ -134,6 +134,7 @@ export default function Checkout() {
               {paymentNumber && (
                 <p className="text-yellow-300 font-semibold">
                   Send payment to: {paymentNumber}
+                  Name: Adil Ameer
                 </p>
                 
               )}
