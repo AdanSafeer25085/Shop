@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Navbar from "../components/Navbar";
-import Masonry from "react-masonry-css";
 import { useRouter } from "next/router";
+import Masonry from "react-masonry-css";
+import Navbar from "../components/Navbar";
 import HeroSlider from "@/components/HeroSlider";
+import supabase from "@/lib/supabaseClient";
 
 export default function UserPage() {
   const [categories, setCategories] = useState([]);
@@ -14,35 +15,46 @@ export default function UserPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedCategories = JSON.parse(
-      localStorage.getItem("categories") || "[]"
-    );
-    const storedProducts = JSON.parse(localStorage.getItem("products") || "[]");
-    setCategories(storedCategories);
-    setProducts(storedProducts);
+    const fetchData = async () => {
+      const { data: catData, error: catError } = await supabase
+        .from("categories")
+        .select("name");
+      const { data: prodData, error: prodError } = await supabase
+        .from("products")
+        .select("*");
+
+      if (catError) console.error("Category fetch error:", catError);
+      if (prodError) console.error("Product fetch error:", prodError);
+
+      if (catData) {
+        const uniqueCats = [...new Set(catData.map((c) => c.name))];
+        setCategories(uniqueCats);
+      }
+      if (prodData) {
+        setProducts(prodData);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory
-      ? p.category === selectedCategory
-      : true;
-    const matchesSearch = p.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const breakpointColumnsObj = {
-    default: 3,
-    1024: 2,
-    640: 1,
-  };
 
   const handleViewProduct = (product) => {
     router.push({
       pathname: "/product/[id]",
       query: { id: product.id || product.name, data: JSON.stringify(product) },
     });
+  };
+
+  const breakpointColumnsObj = {
+    default: 3,
+    1024: 2,
+    640: 1,
   };
 
   return (
@@ -76,8 +88,7 @@ export default function UserPage() {
               style={
                 selectedCategory === ""
                   ? {
-                      background:
-                        "linear-gradient(to right, #000428, #004e92, #000428)",
+                      background: "linear-gradient(to right, #000428, #004e92, #000428)",
                     }
                   : {}
               }
@@ -96,8 +107,7 @@ export default function UserPage() {
                 style={
                   selectedCategory === cat
                     ? {
-                        background:
-                          "linear-gradient(to right, #000428, #004e92, #000428)",
+                        background: "linear-gradient(to right, #000428, #004e92, #000428)",
                       }
                     : {}
                 }
@@ -110,8 +120,7 @@ export default function UserPage() {
                 <button
                   className="w-full text-white px-4 py-1 rounded hover:shadow-md hover:-translate-y-0.5 transition"
                   style={{
-                    background:
-                      "linear-gradient(to right, #000428, #004e92, #000428)",
+                    background: "linear-gradient(to right, #000428, #004e92, #000428)",
                   }}
                 >
                   Admin Login
@@ -140,13 +149,11 @@ export default function UserPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full md:w-1/3 p-2 rounded text-white placeholder-gray-400 hover:placeholder-white focus:outline-none"
               style={{
-                background:
-                  "linear-gradient(to right, #000428, #004e92, #000428)",
+                background: "linear-gradient(to right, #000428, #004e92, #000428)",
               }}
             />
           </div>
 
-          {/* HeroSlider container ensuring full width and responsive */}
           <div className="w-full md:max-w-full mb-8">
             <HeroSlider />
           </div>
@@ -163,8 +170,7 @@ export default function UserPage() {
                   onClick={() => handleViewProduct(prod)}
                   className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition mb-4 cursor-pointer"
                   style={{
-                    background:
-                      "linear-gradient(to right, #000428, #004e92, #000428)",
+                    background: "linear-gradient(to right, #000428, #004e92, #000428)",
                   }}
                 >
                   {prod.images && prod.images.length > 0 && (
@@ -199,4 +205,3 @@ export default function UserPage() {
     </div>
   );
 }
-

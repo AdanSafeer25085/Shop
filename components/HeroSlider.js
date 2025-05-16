@@ -1,28 +1,32 @@
-// components/HeroSlider.tsx
+"use client";
+import React, { useEffect, useState } from "react";
 import Slider from "react-slick";
-
-const sliderImages = [
-  {
-    src: "/images/slide2.png",
-    title: "Mid Month Sale!",
-    subtitle: "Up to 60% off",
-    buttonText: "Shop Now",
-  },
-  {
-    src: "/images/slide2.png",
-    title: "Dine in Style",
-    subtitle: "Up to 50% off!",
-    buttonText: "Explore",
-  },
-  {
-    src: "/images/slide2.png",
-    title: "Tech Deals",
-    subtitle: "Gadgets at Best Prices",
-    buttonText: "Buy Now",
-  },
-];
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const HeroSlider = () => {
+  const supabase = createClientComponentClient();
+  const [discountedProducts, setDiscountedProducts] = useState([]);
+
+  useEffect(() => {
+    async function fetchDiscountedProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, discount, images")
+        .gte("discount", 1);
+
+      if (error) {
+        console.error("Error fetching discounted products:", error);
+      } else {
+        console.log("Fetched discounted products:", data);
+        setDiscountedProducts(data);
+      }
+    }
+
+    fetchDiscountedProducts();
+  }, []);
+
   const settings = {
     dots: true,
     infinite: true,
@@ -32,51 +36,34 @@ const HeroSlider = () => {
     slidesToShow: 1,
     slidesToScroll: 1,
     arrows: false,
-    responsive: [
-      {
-        breakpoint: 640, // Tailwind's sm breakpoint
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 768, // Tailwind's md breakpoint
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 1024, // Tailwind's lg breakpoint
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
   };
 
   return (
     <div className="w-full max-w-[1600px] mx-auto pt-2 px-4">
-      <Slider {...settings}>
-        {sliderImages.map((slide, index) => (
-          <div key={index} className="relative">
-            <img
-              src={slide.src}
-              alt={`slide-${index}`}
-              className="w-full h-auto max-h-[400px] sm:max-h-[500px] md:max-h-[600px] object-cover rounded-xl shadow-lg"
-            />
-            <div className="absolute top-1/2 left-4 sm:left-8 md:left-10 transform -translate-y-1/2 text-white drop-shadow-lg px-2 sm:px-4">
-              <h2 className="text-xl sm:text-2xl md:text-4xl font-bold">{slide.title}</h2>
-              <p className="text-sm sm:text-base md:text-xl mt-1 sm:mt-2">{slide.subtitle}</p>
-              <button className="mt-2 sm:mt-4 bg-blue-600 hover:bg-blue-700 px-4 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base rounded shadow">
-                {slide.buttonText}
-              </button>
+      {discountedProducts.length > 0 ? (
+        <Slider {...settings}>
+          {discountedProducts.map((product, index) => (
+            <div key={product.id + "-" + index} className="!flex justify-center">
+              <div className="relative w-full">
+                <img
+                  src={(Array.isArray(product.images) && product.images[0]) || "/images/fallback.png"}
+                  alt={product.name}
+                  className="w-full h-[400px] sm:h-[500px] md:h-[600px] object-cover rounded-xl shadow-lg"
+                />
+                <div className="absolute top-1/2 left-4 sm:left-8 md:left-10 transform -translate-y-1/2 text-white drop-shadow-lg px-2 sm:px-4">
+                  <h2 className="text-xl sm:text-2xl md:text-4xl font-bold">{product.name}</h2>
+                  <p className="text-sm sm:text-base md:text-xl mt-1 sm:mt-2">{product.discount}% OFF!</p>
+                  <button className="mt-2 sm:mt-4 bg-blue-600 hover:bg-blue-700 px-4 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base rounded shadow">
+                    Shop Now
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
-      </Slider>
+          ))}
+        </Slider>
+      ) : (
+        <p className="text-center text-gray-500 py-10">No discounted products available.</p>
+      )}
     </div>
   );
 };

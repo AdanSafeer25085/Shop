@@ -1,5 +1,7 @@
+"use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import supabase from "../lib/supabaseClient";
 
 export default function Admin() {
   const router = useRouter();
@@ -27,13 +29,27 @@ export default function Admin() {
       router.push("/login");
     }
 
-    const storedCategories =
-      JSON.parse(localStorage.getItem("categories")) || [];
-    setCategories(storedCategories);
-
-    const storedProducts = JSON.parse(localStorage.getItem("products")) || [];
-    setProducts(storedProducts);
+    fetchCategories();
+    fetchProducts();
   }, []);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase.from("categories").select("*");
+    if (error) {
+      console.error("Error fetching categories:", error);
+    } else {
+      setCategories(data.map((d) => d.name));
+    }
+  };
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from("products").select("*");
+    if (error) {
+      console.error("Error fetching products:", error);
+    } else {
+      setProducts(data);
+    }
+  };
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -74,25 +90,32 @@ export default function Admin() {
     reader.readAsDataURL(file);
   };
 
-  const handleAddOrUpdateProduct = (e) => {
+  const handleAddOrUpdateProduct = async (e) => {
     e.preventDefault();
-    if (
-      !productForm.name.trim() ||
-      !productForm.price.trim() ||
-      !productForm.category.trim()
-    )
-      return;
+    const { name, price, category } = productForm;
+    if (!name.trim() || !price.trim() || !category.trim()) return;
 
-    let updatedProducts;
     if (editingIndex !== null) {
-      updatedProducts = [...products];
-      updatedProducts[editingIndex] = productForm;
+      const id = products[editingIndex].id;
+      const { error } = await supabase
+        .from("products")
+        .update(productForm)
+        .eq("id", id);
+      if (!error) {
+        await fetchProducts();
+        setEditingIndex(null);
+        resetForm();
+      }
     } else {
-      updatedProducts = [...products, productForm];
+      const { error } = await supabase.from("products").insert([productForm]);
+      if (!error) {
+        await fetchProducts();
+        resetForm();
+      }
     }
+  };
 
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
+  const resetForm = () => {
     setProductForm({
       name: "",
       price: "",
@@ -104,10 +127,12 @@ export default function Admin() {
     setEditingIndex(null);
   };
 
-  const handleDeleteProduct = (index) => {
-    const updatedProducts = products.filter((_, i) => i !== index);
-    setProducts(updatedProducts);
-    localStorage.setItem("products", JSON.stringify(updatedProducts));
+  const handleDeleteProduct = async (index) => {
+    const id = products[index].id;
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (!error) {
+      await fetchProducts();
+    }
   };
 
   const handleEditProduct = (index) => {
@@ -115,26 +140,37 @@ export default function Admin() {
     setEditingIndex(index);
   };
 
-  const handleDeleteCategory = (catToDelete) => {
-    const productsInCategory = products.filter(
-      (prod) => prod.category === catToDelete
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    const name = categoryInput.trim();
+    if (!name || categories.includes(name))
+      return alert("Category exists or invalid.");
+    const { error } = await supabase.from("categories").insert([{ name }]);
+    if (!error) {
+      await fetchCategories();
+      setCategoryInput("");
+    }
+  };
+
+  const handleDeleteCategory = async (name) => {
+    const productsInCategory = products.filter((p) => p.category === name);
+    const confirmed = confirm(
+      `Delete category "${name}"?\nIt contains ${productsInCategory.length} product(s).`
     );
-    const productCount = productsInCategory.length;
+    if (!confirmed) return;
 
-    const confirmed = window.confirm(
-      `Do you really want to delete the category "${catToDelete}"?\nIt contains ${productCount} product(s).`
-    );
+    const { error: catError } = await supabase
+      .from("categories")
+      .delete()
+      .eq("name", name);
+    const { error: prodError } = await supabase
+      .from("products")
+      .delete()
+      .eq("category", name);
 
-    if (confirmed) {
-      const updatedCategories = categories.filter((cat) => cat !== catToDelete);
-      setCategories(updatedCategories);
-      localStorage.setItem("categories", JSON.stringify(updatedCategories));
-
-      const updatedProducts = products.filter(
-        (prod) => prod.category !== catToDelete
-      );
-      setProducts(updatedProducts);
-      localStorage.setItem("products", JSON.stringify(updatedProducts));
+    if (!catError && !prodError) {
+      await fetchCategories();
+      await fetchProducts();
     }
   };
 
@@ -145,6 +181,63 @@ export default function Admin() {
 
   const handleDeleteVideo = () => {
     setProductForm((prev) => ({ ...prev, video: null }));
+  };
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [discounts, setDiscounts] = useState({});
+
+  const handleSelectProduct = (id) => {
+    setSelectedProducts((prev) =>
+      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+    );
+  };
+
+  const handleDiscountChange = (id, value) => {
+    setDiscounts((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const applyDiscount = async () => {
+    if (selectedProducts.length === 0) {
+      alert("Select at least one product");
+      return;
+    }
+
+    // Validate all discounts first
+    for (let id of selectedProducts) {
+      const discount = parseFloat(discounts[id]);
+      if (isNaN(discount) || discount < 0 || discount > 100) {
+        alert(`Enter a valid discount between 0 and 100 for product ID ${id}`);
+        return;
+      }
+    }
+
+    try {
+      // Reset discount for all products first
+      const { error: resetError } = await supabase
+        .from("products")
+        .update({ discount: 0 })
+        .gte("discount", 1);
+
+      if (resetError) throw resetError;
+
+      // Apply new discounts to selected products
+      for (let id of selectedProducts) {
+        const discount = parseFloat(discounts[id]);
+        const { error } = await supabase
+          .from("products")
+          .update({ discount })
+          .eq("id", id);
+
+        if (error) throw error;
+      }
+
+      alert("Discounts applied successfully");
+      await fetchProducts();
+      setSelectedProducts([]);
+      setDiscounts({});
+    } catch (error) {
+      console.error("Failed to apply discount:", error);
+      alert("Failed to apply discount: " + error.message);
+    }
   };
 
   return (
@@ -159,7 +252,6 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* CATEGORY LIST */}
       <h2 className="text-xl font-semibold mb-2">Categories:</h2>
       {categories.length > 0 ? (
         <ul className="list-disc pl-5 mb-4 border">
@@ -179,22 +271,7 @@ export default function Admin() {
         <p className="text-gray-500 mb-4">No categories added yet.</p>
       )}
 
-      {/* ADD CATEGORY */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!categoryInput.trim()) return;
-          if (categories.includes(categoryInput.trim())) {
-            alert("This category already exists.");
-            return;
-          }
-          const updatedCategories = [...categories, categoryInput];
-          setCategories(updatedCategories);
-          localStorage.setItem("categories", JSON.stringify(updatedCategories));
-          setCategoryInput("");
-        }}
-        className="mb-6"
-      >
+      <form onSubmit={handleAddCategory} className="mb-6">
         <label className="font-semibold">Add Category:</label>
         <input
           type="text"
@@ -210,7 +287,6 @@ export default function Admin() {
         </button>
       </form>
 
-      {/* PRODUCT FORM */}
       <form
         onSubmit={handleAddOrUpdateProduct}
         className="mb-6 border p-4 rounded"
@@ -288,7 +364,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Display uploaded images with delete option */}
         {productForm.images.length > 0 && (
           <div className="flex gap-2 mt-2 flex-wrap">
             {productForm.images.map((img, idx) => (
@@ -309,7 +384,6 @@ export default function Admin() {
           </div>
         )}
 
-        {/* Display uploaded video with delete option */}
         {productForm.video && (
           <div className="mt-2 relative">
             <video src={productForm.video} controls className="w-64 h-auto" />
@@ -330,13 +404,14 @@ export default function Admin() {
         </button>
       </form>
 
-      {/* PRODUCT LIST */}
       <h2 className="text-xl font-semibold mb-2">Products List:</h2>
       {products.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border">
             <thead>
               <tr>
+                <th className="border p-2">Select</th>
+                <th className="border p-2">Discount</th>
                 <th className="border p-2">Name</th>
                 <th className="border p-2">Category</th>
                 <th className="border p-2">Price</th>
@@ -345,9 +420,38 @@ export default function Admin() {
                 <th className="border p-2">Actions</th>
               </tr>
             </thead>
+
             <tbody>
               {products.map((prod, index) => (
                 <tr key={index}>
+                  <td className="border p-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(prod.id)}
+                      onChange={() => handleSelectProduct(prod.id)}
+                    />
+                  </td>
+                  <td className="border p-2 text-center">
+                    {selectedProducts.includes(prod.id) && (
+                      <div className="flex flex-col items-center">
+                        <input
+                          type="number"
+                          placeholder="Discount %"
+                          value={discounts[prod.id] || ""}
+                          onChange={(e) =>
+                            handleDiscountChange(prod.id, e.target.value)
+                          }
+                          className="w-20 p-1 border rounded mb-1 text-center"
+                        />
+                        <button
+                          onClick={() => applyDiscount(prod.id)}
+                          className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    )}
+                  </td>
                   <td className="border p-2 text-center">{prod.name}</td>
                   <td className="border p-2 text-center">{prod.category}</td>
                   <td className="border p-2 text-center">{prod.price}</td>
