@@ -4,16 +4,18 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/router";
 
 const HeroSlider = () => {
   const supabase = createClientComponentClient();
   const [discountedProducts, setDiscountedProducts] = useState([]);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchDiscountedProducts() {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, discount, images")
+        .select("*")  // Fetch all fields
         .gte("discount", 1);
 
       if (error) {
@@ -27,15 +29,21 @@ const HeroSlider = () => {
     fetchDiscountedProducts();
   }, []);
 
+  const onlyOne = discountedProducts.length === 1;
+
   const settings = {
-    dots: true,
-    infinite: true,
-    autoplay: true,
+    dots: !onlyOne,
+    infinite: !onlyOne,
+    autoplay: !onlyOne,
     speed: 500,
     autoplaySpeed: 4000,
     slidesToShow: 1,
     slidesToScroll: 1,
-    arrows: false,
+    arrows: !onlyOne,
+  };
+
+  const calculateDiscountedPrice = (price, discount) => {
+    return price - (price * discount) / 100;
   };
 
   return (
@@ -43,7 +51,7 @@ const HeroSlider = () => {
       {discountedProducts.length > 0 ? (
         <Slider {...settings}>
           {discountedProducts.map((product, index) => (
-            <div key={product.id + "-" + index} className="!flex justify-center">
+            <div key={product.id + "-" + index} className="flex justify-center items-center">
               <div className="relative w-full">
                 <img
                   src={(Array.isArray(product.images) && product.images[0]) || "/images/fallback.png"}
@@ -51,9 +59,21 @@ const HeroSlider = () => {
                   className="w-full h-[400px] sm:h-[500px] md:h-[600px] object-cover rounded-xl shadow-lg"
                 />
                 <div className="absolute top-1/2 left-4 sm:left-8 md:left-10 transform -translate-y-1/2 text-white drop-shadow-lg px-2 sm:px-4">
-                  <h2 className="text-xl sm:text-2xl md:text-4xl font-bold">{product.name}</h2>
-                  <p className="text-sm sm:text-base md:text-xl mt-1 sm:mt-2">{product.discount}% OFF!</p>
-                  <button className="mt-2 sm:mt-4 bg-blue-600 hover:bg-blue-700 px-4 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base rounded shadow">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">{product.name}</h2>
+                  <p className="text-lg sm:text-xl md:text-2xl mb-2">${product.price}</p>
+                  <p className="text-lg sm:text-xl md:text-2xl mb-4">
+                    Now ${calculateDiscountedPrice(product.price, product.discount).toFixed(2)} ({product.discount}% OFF)
+                  </p>
+                  <button
+                    onClick={() => router.push({
+                      pathname: `/product/${product.id}`,
+                      query: { data: JSON.stringify({
+                        ...product,
+                        discountedPrice: calculateDiscountedPrice(product.price, product.discount)
+                      })}
+                    })}
+                    className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
                     Shop Now
                   </button>
                 </div>

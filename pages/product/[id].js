@@ -3,6 +3,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar"
 
 export default function ProductDetail() {
   const router = useRouter();
@@ -35,9 +36,40 @@ export default function ProductDetail() {
     setMainMedia({ type, src });
   };
 
+  const handleAddOrUpdateProduct = async (e) => {
+    e.preventDefault();
+    const { name, price, category } = productForm;
+    if (!name.trim() || !price.trim() || !category.trim()) return;
+
+    if (editingIndex !== null) {
+      const id = products[editingIndex].id;
+      const { error } = await supabase
+        .from("products")
+        .update(productForm)
+        .eq("id", id);
+      if (!error) {
+        await fetchProducts();
+        resetForm();
+      } else {
+        console.error("Error updating product:", error);
+        alert("Failed to update product");
+      }
+    } else {
+      const { error } = await supabase.from("products").insert([productForm]);
+      if (!error) {
+        await fetchProducts();
+        resetForm();
+      } else {
+        console.error("Error inserting product:", error);
+        alert("Failed to add product");
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col items-center justify-center">
-      <div className="w-full max-w-6xl">
+    <div className="flex min-h-screen text-white max-w-[1900px] mx-auto pt-16">
+      <Navbar className="fixed top-0 left-0 w-full z-40" />
+      <div className="flex-1 p-4 overflow-x-hidden md:ml-60">
         <Link href="/user">
           <button className="mb-6 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600">
             ← Back to Shop
@@ -60,25 +92,28 @@ export default function ProductDetail() {
               </video>
             )}
 
-            <div className="flex mt-4 gap-2 overflow-x-auto">
-              {product.images?.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`Image ${idx + 1}`}
-                  onClick={() => handleMediaClick("image", img)}
-                  className="h-20 w-20 object-cover rounded cursor-pointer border border-gray-600 hover:border-white"
-                />
-              ))}
-              {product.video && (
-                <div
-                  onClick={() => handleMediaClick("video", product.video)}
-                  className="h-20 w-20 bg-black flex items-center justify-center rounded cursor-pointer border border-gray-600 hover:border-white"
-                >
-                  <span className="text-xs text-white">🎥 Video</span>
-                </div>
-              )}
+            <div className="w-full mt-4 flex justify-center">
+              <div className="flex gap-2 overflow-x-auto">
+                {product.images?.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`Image ${idx + 1}`}
+                    onClick={() => handleMediaClick("image", img)}
+                    className="h-20 w-20 object-cover rounded cursor-pointer border border-gray-600 hover:border-white"
+                  />
+                ))}
+                {product.video && (
+                  <div
+                    onClick={() => handleMediaClick("video", product.video)}
+                    className="h-20 w-20 bg-black flex items-center justify-center rounded cursor-pointer border border-gray-600 hover:border-white"
+                  >
+                    <span className="text-xs text-white">🎥 Video</span>
+                  </div>
+                )}
+              </div>
             </div>
+
           </div>
 
           {/* Right: Product Info */}

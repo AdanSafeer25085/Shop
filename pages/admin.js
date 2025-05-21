@@ -1,7 +1,51 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import supabase from "../lib/supabaseClient";
+
+// Simple client-side image optimization (resize) using canvas
+const optimizeImage = (file, maxWidth = 1024, maxHeight = 1024) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(new File([blob], file.name, { type: file.type }));
+        },
+        file.type,
+        0.8 // quality (0.8 for good compression)
+      );
+    };
+    img.onerror = reject;
+  });
+};
 
 export default function Admin() {
   const router = useRouter();
@@ -17,11 +61,31 @@ export default function Admin() {
     video: null,
   });
   const [editingIndex, setEditingIndex] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [discounts, setDiscounts] = useState({});
 
   const handleLogout = () => {
     localStorage.removeItem("isAdmin");
     router.push("/");
   };
+
+  const fetchCategories = useCallback(async () => {
+    const { data, error } = await supabase.from("categories").select("*");
+    if (error) {
+      console.error("Error fetching categories:", error);
+    } else {
+      setCategories(data);
+    }
+  }, []);
+
+  const fetchProducts = useCallback(async () => {
+    const { data, error } = await supabase.from("products").select("*");
+    if (error) {
+      console.error("Error fetching products:", error);
+    } else {
+      setProducts(data);
+    }
+  }, []);
 
   useEffect(() => {
     const isAdmin = localStorage.getItem("isAdmin");
@@ -31,63 +95,138 @@ export default function Admin() {
 
     fetchCategories();
     fetchProducts();
-  }, []);
+  }, [fetchCategories, fetchProducts, router]);
 
-  const fetchCategories = async () => {
-    const { data, error } = await supabase.from("categories").select("*");
-    if (error) {
-      console.error("Error fetching categories:", error);
-    } else {
-      setCategories(data.map((d) => d.name));
-    }
+  const generateUniqueFilename = (fileName) => {
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    return `${Date.now()}_${randomStr}_${fileName}`;
   };
 
-  const fetchProducts = async () => {
-    const { data, error } = await supabase.from("products").select("*");
-    if (error) {
-      console.error("Error fetching products:", error);
-    } else {
-      setProducts(data);
+  const validateFile = (file, type) => {
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/gif"];
+    const allowedVideoTypes = ["video/mp4", "video/webm", "video/ogg"];
+    const maxImageSize = 5 * 1024 * 1024; // 5 MB
+    const maxVideoSize = 20 * 1024 * 1024; // 20 MB
+
+    if (type === "image") {
+      if (!allowedImageTypes.includes(file.type)) {
+        alert("Invalid image type. Only JPEG, PNG, and GIF are allowed.");
+        return false;
+      }
+      if (file.size > maxImageSize) {
+        alert("Image size exceeds 5 MB limit.");
+        return false;
+      }
+    } else if (type === "video") {
+      if (!allowedVideoTypes.includes(file.type)) {
+        alert("Invalid video type. Only MP4, WebM, and OGG are allowed.");
+        return false;
+      }
+      if (file.size > maxVideoSize) {
+        alert("Video size exceeds 20 MB limit.");
+        return false;
+      }
     }
+    return true;
   };
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const remainingSlots = 4 - productForm.images.length;
+    const maxImages = 4;
+    const remainingSlots = maxImages - productForm.images.length;
 
     if (files.length > remainingSlots) {
-      alert(`You can only add up to 4 images in total.`);
+      alert(`You can only add up to ${maxImages} images in total.`);
       return;
     }
 
-    const base64Promises = files.map(
-      (file) =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        })
-    );
-    const base64Images = await Promise.all(base64Promises);
+    const uploadedImages = [];
+
+    for (const file of files) {
+      if (!validateFile(file, "image")) continue;
+
+      let optimizedFile;
+      try {
+        optimizedFile = await optimizeImage(file);
+      } catch (err) {
+        console.error("Image optimization failed, uploading original file", err);
+        optimizedFile = file;
+      }
+
+      const fileName = generateUniqueFilename(optimizedFile.name);
+      const { data, error } = await supabase.storage
+        .from("product-media")
+        .upload(fileName, optimizedFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      console.log("Upload result:", data, error);
+
+      if (error) {
+        console.error("Error uploading image:", error);
+        alert("Image upload failed");
+        continue;
+      }
+      const { data: publicUrlData, error: urlError } = supabase.storage
+        .from("product-media")
+        .getPublicUrl(data.path);
+
+      console.log("Public URL result:", publicUrlData, urlError);
+
+      if (urlError) {
+        console.error("Error getting image URL:", urlError);
+        alert("Getting image URL failed");
+        continue;
+      }
+      if (publicUrlData && publicUrlData.publicUrl) {
+        uploadedImages.push(publicUrlData.publicUrl);
+      }
+    }
+
     setProductForm((prev) => ({
       ...prev,
-      images: [...prev.images, ...base64Images],
+      images: [...prev.images, ...uploadedImages],
     }));
+
+    e.target.value = null;
   };
 
   const handleVideoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    if (!validateFile(file, "video")) return;
+
+    const fileName = generateUniqueFilename(file.name);
+    const { data, error } = await supabase.storage
+      .from("product-media")
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+    if (error) {
+      console.error("Error uploading video:", error);
+      alert("Video upload failed");
+      return;
+    }
+    const { data: publicUrlData, error: urlError } = supabase.storage
+      .from("product-media")
+      .getPublicUrl(data.path);
+    if (urlError) {
+      console.error("Error getting video URL:", urlError);
+      alert("Getting video URL failed");
+      return;
+    }
+
+    if (publicUrlData && publicUrlData.publicUrl) {
       setProductForm((prev) => ({
         ...prev,
-        video: reader.result,
+        video: publicUrlData.publicUrl,
       }));
-    };
-    reader.readAsDataURL(file);
+    }
+
+    e.target.value = null;
   };
 
   const handleAddOrUpdateProduct = async (e) => {
@@ -103,7 +242,6 @@ export default function Admin() {
         .eq("id", id);
       if (!error) {
         await fetchProducts();
-        setEditingIndex(null);
         resetForm();
       }
     } else {
@@ -132,6 +270,8 @@ export default function Admin() {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (!error) {
       await fetchProducts();
+    } else {
+      alert("Failed to delete product");
     }
   };
 
@@ -143,8 +283,10 @@ export default function Admin() {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     const name = categoryInput.trim();
-    if (!name || categories.includes(name))
-      return alert("Category exists or invalid.");
+    if (!name || categories.some((cat) => cat.name === name)) {
+      alert("Category exists or invalid.");
+      return;
+    }
     const { error } = await supabase.from("categories").insert([{ name }]);
     if (!error) {
       await fetchCategories();
@@ -182,13 +324,21 @@ export default function Admin() {
   const handleDeleteVideo = () => {
     setProductForm((prev) => ({ ...prev, video: null }));
   };
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [discounts, setDiscounts] = useState({});
 
-  const handleSelectProduct = (id) => {
-    setSelectedProducts((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
+  const handleSelectProduct = async (id) => {
+    if (selectedProducts.includes(id)) {
+      // Unselecting: remove discount in DB
+      await supabase.from("products").update({ discount: 0 }).eq("id", id);
+      setDiscounts((prev) => {
+        const newDiscounts = { ...prev };
+        delete newDiscounts[id];
+        return newDiscounts;
+      });
+      await fetchProducts();
+      setSelectedProducts((prev) => prev.filter((pid) => pid !== id));
+    } else {
+      setSelectedProducts((prev) => [...prev, id]);
+    }
   };
 
   const handleDiscountChange = (id, value) => {
@@ -201,7 +351,6 @@ export default function Admin() {
       return;
     }
 
-    // Validate all discounts first
     for (let id of selectedProducts) {
       const discount = parseFloat(discounts[id]);
       if (isNaN(discount) || discount < 0 || discount > 100) {
@@ -211,7 +360,6 @@ export default function Admin() {
     }
 
     try {
-      // Reset discount for all products first
       const { error: resetError } = await supabase
         .from("products")
         .update({ discount: 0 })
@@ -219,7 +367,6 @@ export default function Admin() {
 
       if (resetError) throw resetError;
 
-      // Apply new discounts to selected products
       for (let id of selectedProducts) {
         const discount = parseFloat(discounts[id]);
         const { error } = await supabase
@@ -242,6 +389,7 @@ export default function Admin() {
 
   return (
     <div className="p-4 max-w-[1300px] m-auto">
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <button
@@ -252,14 +400,15 @@ export default function Admin() {
         </button>
       </div>
 
+      {/* Categories */}
       <h2 className="text-xl font-semibold mb-2">Categories:</h2>
       {categories.length > 0 ? (
         <ul className="list-disc pl-5 mb-4 border">
           {categories.map((cat, index) => (
             <li key={index} className="flex items-center justify-between">
-              {cat}
+              {cat.name}
               <button
-                onClick={() => handleDeleteCategory(cat)}
+                onClick={() => handleDeleteCategory(cat.name)}
                 className="text-red-500 ml-4 border-l border-white px-5 py-1"
               >
                 Delete
@@ -271,6 +420,7 @@ export default function Admin() {
         <p className="text-gray-500 mb-4">No categories added yet.</p>
       )}
 
+      {/* Add Category Form */}
       <form onSubmit={handleAddCategory} className="mb-6">
         <label className="font-semibold">Add Category:</label>
         <input
@@ -287,6 +437,7 @@ export default function Admin() {
         </button>
       </form>
 
+      {/* Product Form */}
       <form
         onSubmit={handleAddOrUpdateProduct}
         className="mb-6 border p-4 rounded"
@@ -322,8 +473,8 @@ export default function Admin() {
           >
             <option value="">Select Category</option>
             {categories.map((cat, idx) => (
-              <option key={idx} value={cat}>
-                {cat}
+              <option key={idx} value={cat.name}>
+                {cat.name}
               </option>
             ))}
           </select>
@@ -346,8 +497,29 @@ export default function Admin() {
               multiple
               onChange={handleImageUpload}
               className="border p-2 rounded w-full"
-              placeholder="Select up to 4 images"
             />
+          </div>
+
+          <div className="flex flex-wrap gap-3 mt-4 col-span-full">
+            {productForm.images.map((img, idx) => (
+              <div
+                key={idx}
+                className="relative w-20 h-20 rounded overflow-hidden border"
+              >
+                <img
+                  src={img}
+                  alt={`uploaded-${idx}`}
+                  className="object-cover w-full h-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleDeleteImage(idx)}
+                  className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-sm"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
 
           <div className="col-span-full mt-4">
@@ -359,51 +531,31 @@ export default function Admin() {
               accept="video/*"
               onChange={handleVideoUpload}
               className="border p-2 rounded w-full"
-              placeholder="Select one video file"
             />
           </div>
+          {productForm.video && (
+            <div className="relative mt-2 col-span-full w-64 h-auto">
+              <video src={productForm.video} controls className="w-full h-auto" />
+              <button
+                type="button"
+                onClick={handleDeleteVideo}
+                className="absolute top-1 left-1 bg-red-600 text-white text-sm px-2 py-1 rounded"
+              >
+                Remove Video
+              </button>
+            </div>
+          )}
         </div>
-
-        {productForm.images.length > 0 && (
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {productForm.images.map((img, idx) => (
-              <div key={idx} className="relative">
-                <img
-                  src={img}
-                  alt=""
-                  className="w-16 h-16 object-cover rounded"
-                />
-                <button
-                  onClick={() => handleDeleteImage(idx)}
-                  className="absolute top-0 right-0 text-white bg-red-600 rounded-full w-5 h-5 text-xs flex items-center justify-center"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {productForm.video && (
-          <div className="mt-2 relative">
-            <video src={productForm.video} controls className="w-64 h-auto" />
-            <button
-              onClick={handleDeleteVideo}
-              className="absolute top-1 left-1 bg-red-600 text-white text-sm px-2 py-1 rounded"
-            >
-              Remove Video
-            </button>
-          </div>
-        )}
 
         <button
           type="submit"
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           {editingIndex !== null ? "Update Product" : "Add Product"}
         </button>
       </form>
 
+      {/* Products List */}
       <h2 className="text-xl font-semibold mb-2">Products List:</h2>
       {products.length > 0 ? (
         <div className="overflow-x-auto">
@@ -420,10 +572,9 @@ export default function Admin() {
                 <th className="border p-2">Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {products.map((prod, index) => (
-                <tr key={index}>
+                <tr key={prod.id}>
                   <td className="border p-2 text-center">
                     <input
                       type="checkbox"
@@ -462,7 +613,7 @@ export default function Admin() {
                           <img
                             key={idx}
                             src={img}
-                            alt=""
+                            alt={`prod-img-${idx}`}
                             className="w-8 h-8 object-cover rounded"
                           />
                         ))}
@@ -480,6 +631,13 @@ export default function Admin() {
                       />
                     ) : (
                       "No Video"
+                    )}
+                  </td>
+                  <td className="border p-2 text-center">
+                    {prod.discount && prod.discount > 0 ? (
+                      <span className="text-green-600 font-bold">{prod.discount}% OFF</span>
+                    ) : (
+                      "-"
                     )}
                   </td>
                   <td className="border p-2 text-center">
