@@ -159,44 +159,47 @@ export default function UserPage() {
           </div>
 
           {filteredProducts.length > 0 ? (
-            <Masonry
-              breakpointCols={breakpointColumnsObj}
-              className="flex w-auto gap-4"
-              columnClassName="masonry-column"
-            >
+            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
               {filteredProducts.map((prod, index) => (
                 <div
                   key={index}
                   onClick={() => handleViewProduct(prod)}
-                  className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition mb-4 cursor-pointer"
+                  className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition cursor-pointer flex flex-col"
                   style={{
                     background: "linear-gradient(to right, #000428, #004e92, #000428)",
+                    minHeight: "280px",
+                    maxHeight: "340px",
                   }}
                 >
                   {prod.images && prod.images.length > 0 && (
                     <img
                       src={prod.images[0]}
                       alt={prod.name}
-                      className="w-full h-auto object-cover rounded-t"
+                      className="w-full h-40 object-cover rounded-t"
+                      style={{ minHeight: "160px", maxHeight: "160px" }}
                     />
                   )}
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg">{prod.name}</h3>
-                    <p className="text-gray-400 text-sm">{prod.description}</p>
-                    <p className="font-bold mt-2">${prod.price}</p>
-                    <button
-                      className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProduct(prod);
-                      }}
-                    >
-                      Buy Now
-                    </button>
+                  <div className="p-1 flex-1 flex flex-col">
+                    <div>
+                      <h3 className="font-semibold text-base truncate">{prod.name}</h3>
+                      <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm mt-1">${prod.price}</p>
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProduct(prod);
+                        }}
+                      >
+                        Buy Now
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
-            </Masonry>
+            </div>
           ) : (
             <p className="text-gray-400">No products found.</p>
           )}

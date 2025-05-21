@@ -3,7 +3,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/Navbar"
 
 export default function ProductDetail() {
   const router = useRouter();
@@ -67,75 +66,87 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="flex min-h-screen text-white max-w-[1900px] mx-auto pt-16">
-      <Navbar className="fixed top-0 left-0 w-full z-40" />
-      <div className="flex-1 p-4 overflow-x-hidden md:ml-60">
+    <div className="min-h-screen bg-gray-900">
+      <div className="max-w-7xl mx-auto pt-20 px-4">
         <Link href="/user">
-          <button className="mb-6 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600">
+          <button className="mb-6 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 text-white">
             ← Back to Shop
           </button>
         </Link>
 
-        <div className="bg-gray-800 rounded shadow p-6 flex flex-col md:flex-row gap-6">
-          {/* Left: Main Image/Video */}
-          <div className="md:w-1/2 w-full">
-            {mainMedia?.type === "image" ? (
-              <img
-                src={mainMedia.src}
-                alt={product.name}
-                className="w-full h-80 object-contain rounded"
-              />
-            ) : (
-              <video controls className="w-full h-80 rounded">
-                <source src={mainMedia.src} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            )}
-
-            <div className="w-full mt-4 flex justify-center">
-              <div className="flex gap-2 overflow-x-auto">
-                {product.images?.map((img, idx) => (
+        <div className="bg-gray-800 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Left: Main Image/Video */}
+            <div className="md:w-1/2">
+              <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-700">
+                {mainMedia?.type === "image" ? (
                   <img
-                    key={idx}
-                    src={img}
-                    alt={`Image ${idx + 1}`}
-                    onClick={() => handleMediaClick("image", img)}
-                    className="h-20 w-20 object-cover rounded cursor-pointer border border-gray-600 hover:border-white"
+                    src={mainMedia.src}
+                    alt={product.name}
+                    className="w-full h-full object-contain"
                   />
-                ))}
-                {product.video && (
-                  <div
-                    onClick={() => handleMediaClick("video", product.video)}
-                    className="h-20 w-20 bg-black flex items-center justify-center rounded cursor-pointer border border-gray-600 hover:border-white"
-                  >
-                    <span className="text-xs text-white">🎥 Video</span>
-                  </div>
+                ) : (
+                  <video controls className="w-full h-full">
+                    <source src={mainMedia.src} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 )}
+              </div>
+
+              <div className="mt-4">
+                <div className="flex gap-2 overflow-x-auto py-2">
+                  {product.images?.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Image ${idx + 1}`}
+                      onClick={() => handleMediaClick("image", img)}
+                      className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-gray-600 hover:border-blue-500 transition-colors"
+                    />
+                  ))}
+                  {product.video && (
+                    <div
+                      onClick={() => handleMediaClick("video", product.video)}
+                      className="h-20 w-20 bg-gray-700 flex items-center justify-center rounded-lg cursor-pointer border-2 border-gray-600 hover:border-blue-500 transition-colors"
+                    >
+                      <span className="text-white">🎥</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-          </div>
+            {/* Right: Product Info */}
+            <div className="md:w-1/2">
+              <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+              {product.description && (
+                <p className="text-gray-300 mb-6">{product.description}</p>
+              )}
+              <div className="space-y-4">
+                {product.discount > 0 ? (
+                  <>
+                    <p className="text-2xl text-gray-400 line-through">${product.price}</p>
+                    <p className="text-3xl font-bold text-green-500">
+                      ${(product.price - (product.price * product.discount / 100)).toFixed(2)}
+                      <span className="ml-2 text-lg text-green-400">({product.discount}% OFF)</span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-3xl font-bold text-green-500">${product.price}</p>
+                )}
+              </div>
 
-          {/* Right: Product Info */}
-          <div className="md:w-1/2 w-full flex flex-col justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
-              <p className="text-gray-300 mb-4">{product.description}</p>
-              <p className="text-green-400 font-bold text-2xl mb-6">
-                ${product.price}
-              </p>
+              <Link
+                href={{
+                  pathname: "/checkout",
+                  query: { product: encodeURIComponent(JSON.stringify(product)) },
+                }}
+              >
+                <button className="mt-8 w-full bg-blue-600 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Proceed to Checkout
+                </button>
+              </Link>
             </div>
-
-            <Link
-              href={{
-                pathname: "/checkout",
-                query: { product: encodeURIComponent(JSON.stringify(product)) },
-              }}
-            >
-              <button className="mt-6 bg-blue-600 px-6 py-2 rounded hover:bg-blue-700">
-                Proceed to Checkout
-              </button>
-            </Link>
           </div>
         </div>
       </div>

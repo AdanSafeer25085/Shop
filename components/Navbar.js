@@ -18,13 +18,8 @@ export default function Navbar({ onToggleSidebar }) {
           ☰
         </button>
 
-        {/* Logo + title (move to right on small screens, left on md+ screens) */}
+        {/* Title only, logo removed */}
         <div className="flex items-center gap-2 ml-auto md:ml-0">
-          <img
-            className="w-14 h-14 rounded-full border border-white"
-            src="/images/logo1.png"
-            alt="Shop Logo"
-          />
           <h1 className="text-xl font-bold">Shop With Adil</h1>
         </div>
 

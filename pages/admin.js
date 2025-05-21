@@ -559,6 +559,15 @@ export default function Admin() {
       <h2 className="text-xl font-semibold mb-2">Products List:</h2>
       {products.length > 0 ? (
         <div className="overflow-x-auto">
+          {/* Apply Discounts button */}
+          {selectedProducts.length > 0 && (
+            <button
+              onClick={applyDiscount}
+              className="mb-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            >
+              Apply Discounts
+            </button>
+          )}
           <table className="w-full border-collapse border">
             <thead>
               <tr>
@@ -584,23 +593,13 @@ export default function Admin() {
                   </td>
                   <td className="border p-2 text-center">
                     {selectedProducts.includes(prod.id) && (
-                      <div className="flex flex-col items-center">
-                        <input
-                          type="number"
-                          placeholder="Discount %"
-                          value={discounts[prod.id] || ""}
-                          onChange={(e) =>
-                            handleDiscountChange(prod.id, e.target.value)
-                          }
-                          className="w-20 p-1 border rounded mb-1 text-center"
-                        />
-                        <button
-                          onClick={() => applyDiscount(prod.id)}
-                          className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700"
-                        >
-                          Apply
-                        </button>
-                      </div>
+                      <input
+                        type="number"
+                        placeholder="Discount %"
+                        value={discounts[prod.id] || ""}
+                        onChange={(e) => handleDiscountChange(prod.id, e.target.value)}
+                        className="w-20 p-1 border rounded text-center"
+                      />
                     )}
                   </td>
                   <td className="border p-2 text-center">{prod.name}</td>
