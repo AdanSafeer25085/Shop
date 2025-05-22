@@ -72,6 +72,7 @@ export default function Admin() {
   const [currentPage, setCurrentPage] = useState(1);
   const PRODUCTS_PER_PAGE = 15;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("isAdmin");
@@ -439,10 +440,21 @@ export default function Admin() {
             <button className="absolute top-4 right-4" onClick={() => setSidebarOpen(false)}>
               <XMarkIcon className="h-6 w-6 text-gray-500" />
             </button>
-            <nav className="mt-10 space-y-4">
+            <nav className="mt-10 space-y-4 flex-1 overflow-y-auto">
               <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
               <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>
-              <a href="#categories" className="block text-gray-700 hover:text-indigo-600">Categories</a>
+              <button
+                onClick={() => setShowCategories((prev) => !prev)}
+                className="block w-full text-left text-gray-700 hover:text-indigo-600 focus:outline-none"
+              >
+                Categories
+              </button>
+              {showCategories && (
+                <div className="mt-2 max-h-60 overflow-y-auto pr-2">
+                  <CategoryList categories={categories} onDelete={handleDeleteCategory} />
+                  <CategoryForm value={categoryInput} onChange={e => setCategoryInput(e.target.value)} onSubmit={handleAddCategory} />
+                </div>
+              )}
               <button onClick={handleLogout} className="block w-full text-left text-red-600 hover:text-red-800 mt-8">Logout</button>
             </nav>
           </aside>
@@ -455,7 +467,18 @@ export default function Admin() {
           <nav className="space-y-4">
             <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
             <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>
-            <a href="#categories" className="block text-gray-700 hover:text-indigo-600">Categories</a>
+            <button
+              onClick={() => setShowCategories((prev) => !prev)}
+              className="block w-full text-left text-gray-700 hover:text-indigo-600 focus:outline-none"
+            >
+              Categories
+            </button>
+            {showCategories && (
+              <div className="mt-2">
+                <CategoryList categories={categories} onDelete={handleDeleteCategory} />
+                <CategoryForm value={categoryInput} onChange={e => setCategoryInput(e.target.value)} onSubmit={handleAddCategory} />
+              </div>
+            )}
             <button onClick={handleLogout} className="block w-full text-left text-red-600 hover:text-red-800 mt-8">Logout</button>
           </nav>
         </aside>
@@ -469,15 +492,6 @@ export default function Admin() {
                 <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome, Admin!</h1>
                 <p className="text-gray-500">Manage your products and categories from this dashboard.</p>
               </div>
-            </div>
-          </section>
-
-          {/* Categories Section */}
-          <section id="categories" className="mb-8">
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 mb-4">
-              <h2 className="text-xl font-semibold mb-2 text-gray-800">Categories</h2>
-              <CategoryList categories={categories} onDelete={handleDeleteCategory} />
-              <CategoryForm value={categoryInput} onChange={e => setCategoryInput(e.target.value)} onSubmit={handleAddCategory} />
             </div>
           </section>
 
