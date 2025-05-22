@@ -6,6 +6,7 @@ import Navbar from "../components/user/Navbar";
 import dynamic from "next/dynamic";
 import supabase from "@/lib/supabaseClient";
 import Image from "next/image";
+import Footer from "../components/user/Footer";
 
 const HeroSlider = dynamic(() => import("@/components/user/HeroSlider"), { ssr: false });
 
@@ -107,7 +108,8 @@ export default function UserPage() {
         <div
           className={`fixed top-16 left-0 md:static bg-gray-900 md:bg-transparent h-[calc(100vh-4rem)] w-60 p-4 transition-transform transform ${
             showSidebar ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 z-30`}
+          } md:translate-x-0 z-30 md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:overflow-y-auto md:block`}
+          style={{ maxHeight: 'calc(100vh - 4rem)', overflowY: 'auto' }}
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold">Categories</h2>
@@ -200,7 +202,7 @@ export default function UserPage() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-gray-800 animate-pulse rounded h-[340px]" />
               ))}
@@ -279,6 +281,7 @@ export default function UserPage() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

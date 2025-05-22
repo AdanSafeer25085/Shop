@@ -14,6 +14,7 @@ export default function Checkout() {
     paymentMethod: "",
   });
   const [paymentNumber, setPaymentNumber] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (router.isReady && productQuery) {
@@ -38,6 +39,7 @@ export default function Checkout() {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormErrors((prev) => ({ ...prev, [e.target.name]: "" })); // Clear error for this field
   };
 
   if (!product) {
@@ -51,6 +53,28 @@ export default function Checkout() {
   const discountedPrice = product.discount > 0 ? (product.price - (product.price * product.discount / 100)).toFixed(2) : product.price;
 
   const handleOrder = () => {
+    const errors = {};
+    if (!formData.name.trim()) {
+      errors.name = "Name is required.";
+    }
+    if (!formData.phone.trim()) {
+      errors.phone = "Phone number is required.";
+    } else {
+      const phone = formData.phone.trim();
+      const pkPhoneRegex = /^03\d{9}$/;
+      if (!pkPhoneRegex.test(phone)) {
+        errors.phone = "Enter a valid Pakistani phone number (e.g., 03XXXXXXXXX, 11 digits).";
+      }
+    }
+    if (!formData.address.trim()) {
+      errors.address = "Address is required.";
+    }
+    if (!formData.paymentMethod.trim()) {
+      errors.paymentMethod = "Payment method is required.";
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: $${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
     const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
@@ -95,53 +119,74 @@ export default function Checkout() {
             )}
 
             <div className="space-y-3 mt-6">
-              <input
-                type="text"
-                name="name"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
-              />
-              <input
-                type="text"
-                name="phone"
-                placeholder="Phone Number"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
-              />
-              <textarea
-                name="address"
-                placeholder="Complete Address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
-              ></textarea>
-              <input
-                type="text"
-                name="location"
-                placeholder="Location Marker / Landmark"
-                value={formData.location}
-                onChange={handleInputChange}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-              />
-
-              <select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleInputChange}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
-              >
-                <option value="">Select Payment Method</option>
-                <option value="cod">Cash on Delivery</option>
-                <option value="easypaisa">EasyPaisa</option>
-                <option value="jazzcash">JazzCash</option>
-              </select>
+              <div>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                  required
+                />
+                {formErrors.name && (
+                  <p className="text-red-400 text-xs mt-1 mb-0.5">{formErrors.name}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="Phone Number"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                  required
+                />
+                {formErrors.phone && (
+                  <p className="text-red-400 text-xs mt-1 mb-0.5">{formErrors.phone}</p>
+                )}
+              </div>
+              <div>
+                <textarea
+                  name="address"
+                  placeholder="Complete Address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                  required
+                ></textarea>
+                {formErrors.address && (
+                  <p className="text-red-400 text-xs mt-1 mb-0.5">{formErrors.address}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  name="location"
+                  placeholder="Location Marker / Landmark"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                />
+              </div>
+              <div>
+                <select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleInputChange}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                  required
+                >
+                  <option value="">Select Payment Method</option>
+                  <option value="cod">Cash on Delivery</option>
+                  <option value="easypaisa">EasyPaisa</option>
+                  <option value="jazzcash">JazzCash</option>
+                </select>
+                {formErrors.paymentMethod && (
+                  <p className="text-red-400 text-xs mt-1 mb-0.5">{formErrors.paymentMethod}</p>
+                )}
+              </div>
 
               {paymentNumber && (
                 <p className="text-yellow-300 font-semibold">
@@ -149,7 +194,6 @@ export default function Checkout() {
                   <br />
                   Name: Adil Ameer
                 </p>
-                
               )}
 
               <button
