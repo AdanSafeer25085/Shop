@@ -6,6 +6,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/router";
 import { FastAverageColor } from "fast-average-color";
+import Image from "next/image";
 
 const HeroSlider = () => {
   const supabase = createClientComponentClient();
@@ -17,8 +18,7 @@ const HeroSlider = () => {
     async function fetchDiscountedProducts() {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
-        .gte("discount", 1);
+        .select("id, name, price, discount, images").gte("discount", 1);
 
       if (error) {
         console.error("Error fetching discounted products:", error);
@@ -86,10 +86,13 @@ const HeroSlider = () => {
             return (
               <div key={product.id + "-" + index} className="flex justify-center items-center">
                 <div className="relative w-full">
-                  <img
+                  <Image
                     src={(Array.isArray(product.images) && product.images[0]) || "/images/fallback.png"}
                     alt={product.name}
+                    width={1200}
+                    height={600}
                     className="w-full h-[400px] sm:h-[500px] md:h-[600px] object-cover rounded-xl shadow-lg"
+                    priority={index === 0}
                   />
                   <div className={`absolute top-1/2 left-4 sm:left-8 md:left-10 transform -translate-y-1/2 drop-shadow-lg px-2 sm:px-4 py-2 rounded-xl ${bgClass} ${textClass}`}
                     style={{ maxWidth: "90%" }}

@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Masonry from "react-masonry-css";
-import Navbar from "../components/Navbar";
-import HeroSlider from "@/components/HeroSlider";
+import Navbar from "../components/user/Navbar";
+import dynamic from "next/dynamic";
 import supabase from "@/lib/supabaseClient";
+import Image from "next/image";
+
+const HeroSlider = dynamic(() => import("@/components/user/HeroSlider"), { ssr: false });
 
 export default function UserPage() {
   const [categories, setCategories] = useState([]);
@@ -12,6 +15,10 @@ export default function UserPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(9); // Default for large screens
   const router = useRouter();
 
   useEffect(() => {
@@ -21,7 +28,7 @@ export default function UserPage() {
         .select("name");
       const { data: prodData, error: prodError } = await supabase
         .from("products")
-        .select("*");
+        .select("id, name, price, description, category, images, discount, video");
 
       if (catError) console.error("Category fetch error:", catError);
       if (prodError) console.error("Product fetch error:", prodError);
@@ -33,16 +40,50 @@ export default function UserPage() {
       if (prodData) {
         setProducts(prodData);
       }
+      setLoading(false);
     };
 
     fetchData();
   }, []);
 
-  const filteredProducts = products.filter((p) => {
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Responsive products per page
+  useEffect(() => {
+    function updateProductsPerPage() {
+      if (window.innerWidth < 640) {
+        setProductsPerPage(21); // sm
+      } else if (window.innerWidth < 1024) {
+        setProductsPerPage(35); // md
+      } else {
+        setProductsPerPage(49); // lg and up
+      }
+    }
+    updateProductsPerPage();
+    window.addEventListener("resize", updateProductsPerPage);
+    return () => window.removeEventListener("resize", updateProductsPerPage);
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters/search change
+  }, [selectedCategory, debouncedSearchQuery, productsPerPage]);
+
+  const filteredProducts = useMemo(() => products.filter((p) => {
     const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
-  });
+  }), [products, selectedCategory, debouncedSearchQuery]);
+
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * productsPerPage,
+    currentPage * productsPerPage
+  );
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleViewProduct = (product) => {
     router.push({
@@ -61,10 +102,10 @@ export default function UserPage() {
     <div>
       <Navbar onToggleSidebar={() => setShowSidebar(!showSidebar)} />
 
-      <div className="flex min-h-screen text-white max-w-[1900px] mx-auto">
+      <div className="flex min-h-screen text-white max-w-[1900px] mx-auto pt-16">
         {/* Sidebar */}
         <div
-          className={`fixed top-0 left-0 md:static bg-gray-900 md:bg-transparent h-full w-60 p-4 transition-transform transform ${
+          className={`fixed top-16 left-0 md:static bg-gray-900 md:bg-transparent h-[calc(100vh-4rem)] w-60 p-4 transition-transform transform ${
             showSidebar ? "translate-x-0" : "-translate-x-full"
           } md:translate-x-0 z-30`}
         >
@@ -158,48 +199,81 @@ export default function UserPage() {
             <HeroSlider />
           </div>
 
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
-              {filteredProducts.map((prod, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleViewProduct(prod)}
-                  className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition cursor-pointer flex flex-col"
-                  style={{
-                    background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                    minHeight: "280px",
-                    maxHeight: "340px",
-                  }}
-                >
-                  {prod.images && prod.images.length > 0 && (
-                    <img
-                      src={prod.images[0]}
-                      alt={prod.name}
-                      className="w-full h-40 object-cover rounded-t"
-                      style={{ minHeight: "160px", maxHeight: "160px" }}
-                    />
-                  )}
-                  <div className="p-1 flex-1 flex flex-col">
-                    <div>
-                      <h3 className="font-semibold text-base truncate">{prod.name}</h3>
-                      <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm mt-1">${prod.price}</p>
-                      <button
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewProduct(prod);
-                        }}
-                      >
-                        Buy Now
-                      </button>
-                    </div>
-                  </div>
-                </div>
+          {loading ? (
+            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-gray-800 animate-pulse rounded h-[340px]" />
               ))}
             </div>
+          ) : filteredProducts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+                {paginatedProducts.map((prod, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleViewProduct(prod)}
+                    className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition cursor-pointer flex flex-col"
+                    style={{
+                      background: "linear-gradient(to right, #000428, #004e92, #000428)",
+                      minHeight: "280px",
+                      maxHeight: "340px",
+                    }}
+                  >
+                    {prod.images && prod.images.length > 0 && (
+                      <Image
+                        src={prod.images[0]}
+                        alt={prod.name}
+                        width={300}
+                        height={160}
+                        className="w-full h-40 object-cover rounded-t"
+                        style={{ minHeight: "160px", maxHeight: "160px" }}
+                        priority={index < 8}
+                      />
+                    )}
+                    <div className="p-1 flex-1 flex flex-col">
+                      <div>
+                        <h3 className="font-semibold text-base truncate">{prod.name}</h3>
+                        <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm mt-1">${prod.price}</p>
+                        <button
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewProduct(prod);
+                          }}
+                        >
+                          Buy Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-6">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50 hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-300">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50 hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-gray-400">No products found.</p>
           )}

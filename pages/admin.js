@@ -1,7 +1,12 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import supabase from "../lib/supabaseClient";
+import CategoryList from "../components/admin/CategoryList";
+import CategoryForm from "../components/admin/CategoryForm";
+import ProductForm from "../components/admin/ProductForm";
+import ProductTable from "../components/admin/ProductTable";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 // Simple client-side image optimization (resize) using canvas
 const optimizeImage = (file, maxWidth = 1024, maxHeight = 1024) => {
@@ -63,6 +68,10 @@ export default function Admin() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [discounts, setDiscounts] = useState({});
+  const [productSearch, setProductSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 15;
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("isAdmin");
@@ -70,7 +79,7 @@ export default function Admin() {
   };
 
   const fetchCategories = useCallback(async () => {
-    const { data, error } = await supabase.from("categories").select("*");
+    const { data, error } = await supabase.from("categories").select("name");
     if (error) {
       console.error("Error fetching categories:", error);
     } else {
@@ -79,7 +88,7 @@ export default function Admin() {
   }, []);
 
   const fetchProducts = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("*");
+    const { data, error } = await supabase.from("products").select("id, name, price, description, category, images, discount, video");
     if (error) {
       console.error("Error fetching products:", error);
     } else {
@@ -387,280 +396,138 @@ export default function Admin() {
     }
   };
 
+  const filteredProducts = useMemo(() => {
+    return products.filter((prod) => {
+      const q = productSearch.toLowerCase();
+      return (
+        prod.name.toLowerCase().includes(q) ||
+        prod.category?.toLowerCase().includes(q) ||
+        prod.description?.toLowerCase().includes(q)
+      );
+    });
+  }, [products, productSearch]);
+
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * PRODUCTS_PER_PAGE,
+    currentPage * PRODUCTS_PER_PAGE
+  );
+
   return (
-    <div className="p-4 max-w-[1300px] m-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-30 w-full bg-white shadow-md flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <button className="md:hidden" onClick={() => setSidebarOpen(true)}>
+            <Bars3Icon className="h-6 w-6 text-indigo-600" />
+          </button>
+          <span className="text-xl font-bold text-indigo-700 tracking-tight">Admin Dashboard</span>
+        </div>
         <button
           onClick={handleLogout}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-sm hover:shadow-md"
         >
           Logout
         </button>
-      </div>
+      </header>
 
-      {/* Categories */}
-      <h2 className="text-xl font-semibold mb-2">Categories:</h2>
-      {categories.length > 0 ? (
-        <ul className="list-disc pl-5 mb-4 border">
-          {categories.map((cat, index) => (
-            <li key={index} className="flex items-center justify-between">
-              {cat.name}
-              <button
-                onClick={() => handleDeleteCategory(cat.name)}
-                className="text-red-500 ml-4 border-l border-white px-5 py-1"
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500 mb-4">No categories added yet.</p>
-      )}
-
-      {/* Add Category Form */}
-      <form onSubmit={handleAddCategory} className="mb-6">
-        <label className="font-semibold">Add Category:</label>
-        <input
-          type="text"
-          value={categoryInput}
-          onChange={(e) => setCategoryInput(e.target.value)}
-          className="border p-2 rounded w-full mb-2"
-        />
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Add Category
-        </button>
-      </form>
-
-      {/* Product Form */}
-      <form
-        onSubmit={handleAddOrUpdateProduct}
-        className="mb-6 border p-4 rounded"
-      >
-        <h2 className="text-xl font-semibold mb-2">
-          {editingIndex !== null ? "Edit Product" : "Add Product"}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Product Name"
-            value={productForm.name}
-            onChange={(e) =>
-              setProductForm({ ...productForm, name: e.target.value })
-            }
-            className="border p-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Price"
-            value={productForm.price}
-            onChange={(e) =>
-              setProductForm({ ...productForm, price: e.target.value })
-            }
-            className="border p-2 rounded"
-          />
-          <select
-            value={productForm.category}
-            onChange={(e) =>
-              setProductForm({ ...productForm, category: e.target.value })
-            }
-            className="border p-2 rounded"
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat, idx) => (
-              <option key={idx} value={cat.name}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Description"
-            value={productForm.description}
-            onChange={(e) =>
-              setProductForm({ ...productForm, description: e.target.value })
-            }
-            className="border p-2 rounded"
-          />
-          <div className="col-span-full">
-            <label className="block font-medium mb-1">
-              Upload Images (Max 4):
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              className="border p-2 rounded w-full"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-4 col-span-full">
-            {productForm.images.map((img, idx) => (
-              <div
-                key={idx}
-                className="relative w-20 h-20 rounded overflow-hidden border"
-              >
-                <img
-                  src={img}
-                  alt={`uploaded-${idx}`}
-                  className="object-cover w-full h-full"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteImage(idx)}
-                  className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-sm"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="col-span-full mt-4">
-            <label className="block font-medium mb-1">
-              Upload Product Video (1 file):
-            </label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleVideoUpload}
-              className="border p-2 rounded w-full"
-            />
-          </div>
-          {productForm.video && (
-            <div className="relative mt-2 col-span-full w-64 h-auto">
-              <video src={productForm.video} controls className="w-full h-auto" />
-              <button
-                type="button"
-                onClick={handleDeleteVideo}
-                className="absolute top-1 left-1 bg-red-600 text-white text-sm px-2 py-1 rounded"
-              >
-                Remove Video
-              </button>
-            </div>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          className="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {editingIndex !== null ? "Update Product" : "Add Product"}
-        </button>
-      </form>
-
-      {/* Products List */}
-      <h2 className="text-xl font-semibold mb-2">Products List:</h2>
-      {products.length > 0 ? (
-        <div className="overflow-x-auto">
-          {/* Apply Discounts button */}
-          {selectedProducts.length > 0 && (
-            <button
-              onClick={applyDiscount}
-              className="mb-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Apply Discounts
+      {/* Sidebar Overlay (Mobile) */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 flex">
+          <div className="fixed inset-0 bg-black opacity-30" onClick={() => setSidebarOpen(false)}></div>
+          <aside className="relative z-50 w-64 bg-white shadow-lg h-full flex flex-col p-6">
+            <button className="absolute top-4 right-4" onClick={() => setSidebarOpen(false)}>
+              <XMarkIcon className="h-6 w-6 text-gray-500" />
             </button>
-          )}
-          <table className="w-full border-collapse border">
-            <thead>
-              <tr>
-                <th className="border p-2">Select</th>
-                <th className="border p-2">Discount</th>
-                <th className="border p-2">Name</th>
-                <th className="border p-2">Category</th>
-                <th className="border p-2">Price</th>
-                <th className="border p-2">Images</th>
-                <th className="border p-2">Video</th>
-                <th className="border p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((prod, index) => (
-                <tr key={prod.id}>
-                  <td className="border p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedProducts.includes(prod.id)}
-                      onChange={() => handleSelectProduct(prod.id)}
-                    />
-                  </td>
-                  <td className="border p-2 text-center">
-                    {selectedProducts.includes(prod.id) && (
-                      <input
-                        type="number"
-                        placeholder="Discount %"
-                        value={discounts[prod.id] || ""}
-                        onChange={(e) => handleDiscountChange(prod.id, e.target.value)}
-                        className="w-20 p-1 border rounded text-center"
-                      />
-                    )}
-                  </td>
-                  <td className="border p-2 text-center">{prod.name}</td>
-                  <td className="border p-2 text-center">{prod.category}</td>
-                  <td className="border p-2 text-center">{prod.price}</td>
-                  <td className="border p-2">
-                    {prod.images?.length > 0 ? (
-                      <div className="flex gap-2 justify-center">
-                        {prod.images.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`prod-img-${idx}`}
-                            className="w-8 h-8 object-cover rounded"
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      "No Images"
-                    )}
-                  </td>
-                  <td className="border p-2 text-center">
-                    {prod.video ? (
-                      <video
-                        src={prod.video}
-                        className="w-16 h-12 mx-auto"
-                        controls
-                      />
-                    ) : (
-                      "No Video"
-                    )}
-                  </td>
-                  <td className="border p-2 text-center">
-                    {prod.discount && prod.discount > 0 ? (
-                      <span className="text-green-600 font-bold">{prod.discount}% OFF</span>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="border p-2 text-center">
-                    <button
-                      onClick={() => handleEditProduct(index)}
-                      className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProduct(index)}
-                      className="bg-red-600 text-white px-2 py-1 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <nav className="mt-10 space-y-4">
+              <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
+              <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>
+              <a href="#categories" className="block text-gray-700 hover:text-indigo-600">Categories</a>
+              <button onClick={handleLogout} className="block w-full text-left text-red-600 hover:text-red-800 mt-8">Logout</button>
+            </nav>
+          </aside>
         </div>
-      ) : (
-        <p>No products added yet.</p>
       )}
+
+      {/* Sidebar (Desktop) */}
+      <div className="flex flex-1">
+        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 shadow-lg py-8 px-6 min-h-full">
+          <nav className="space-y-4">
+            <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
+            <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>
+            <a href="#categories" className="block text-gray-700 hover:text-indigo-600">Categories</a>
+            <button onClick={handleLogout} className="block w-full text-left text-red-600 hover:text-red-800 mt-8">Logout</button>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+          {/* Dashboard Section */}
+          <section id="dashboard" className="mb-8">
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome, Admin!</h1>
+                <p className="text-gray-500">Manage your products and categories from this dashboard.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Categories Section */}
+          <section id="categories" className="mb-8">
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 mb-4">
+              <h2 className="text-xl font-semibold mb-2 text-gray-800">Categories</h2>
+              <CategoryList categories={categories} onDelete={handleDeleteCategory} />
+              <CategoryForm value={categoryInput} onChange={e => setCategoryInput(e.target.value)} onSubmit={handleAddCategory} />
+            </div>
+          </section>
+
+          {/* Product Form Section */}
+          <section id="products" className="mb-8">
+            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 mb-4">
+              <h2 className="text-xl font-semibold mb-2 text-gray-800">Add / Edit Product</h2>
+              <ProductForm
+                productForm={productForm}
+                categories={categories}
+                onChange={setProductForm}
+                onImageUpload={handleImageUpload}
+                onVideoUpload={handleVideoUpload}
+                onDeleteImage={handleDeleteImage}
+                onDeleteVideo={handleDeleteVideo}
+                onSubmit={handleAddOrUpdateProduct}
+                editingIndex={editingIndex}
+              />
+            </div>
+          </section>
+
+          {/* Products List Section */}
+          <section className="mb-8">
+            <ProductTable
+              products={paginatedProducts}
+              selectedProducts={selectedProducts}
+              discounts={discounts}
+              onSelectProduct={handleSelectProduct}
+              onDiscountChange={handleDiscountChange}
+              onApplyDiscount={applyDiscount}
+              onEditProduct={handleEditProduct}
+              onDeleteProduct={handleDeleteProduct}
+              productSearch={productSearch}
+              setProductSearch={setProductSearch}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              PRODUCTS_PER_PAGE={PRODUCTS_PER_PAGE}
+            />
+            {selectedProducts.length > 0 && (
+              <button
+                onClick={applyDiscount}
+                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md w-full md:w-auto"
+              >
+                Apply Discounts
+              </button>
+            )}
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

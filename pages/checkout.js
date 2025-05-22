@@ -40,12 +40,6 @@ export default function Checkout() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleOrder = () => {
-    const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: $${product.price}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
-    const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
-  };
-
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6 flex justify-center items-center">
@@ -53,6 +47,14 @@ export default function Checkout() {
       </div>
     );
   }
+
+  const discountedPrice = product.discount > 0 ? (product.price - (product.price * product.discount / 100)).toFixed(2) : product.price;
+
+  const handleOrder = () => {
+    const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: $${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
+    const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 flex justify-center items-center">
@@ -80,7 +82,17 @@ export default function Checkout() {
           <div className="flex-1 space-y-4 w-full">
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="text-gray-300">{product.description}</p>
-            <p className="text-green-400 font-bold text-xl">${product.price}</p>
+            {product.discount > 0 ? (
+              <>
+                <p className="text-gray-400 line-through">${product.price}</p>
+                <p className="text-green-400 font-bold text-xl">
+                  ${(product.price - (product.price * product.discount / 100)).toFixed(2)}
+                  <span className="ml-2 text-sm text-green-300">({product.discount}% OFF)</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-green-400 font-bold text-xl">${product.price}</p>
+            )}
 
             <div className="space-y-3 mt-6">
               <input
