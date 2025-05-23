@@ -98,9 +98,9 @@ const HeroSlider = () => {
                     style={{ maxWidth: "90%" }}
                   >
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">{product.name}</h2>
-                    <p className="text-lg sm:text-xl md:text-2xl mb-2">${product.price}</p>
+                    <p className="text-lg sm:text-xl md:text-2xl mb-2">Rs{product.price}</p>
                     <p className="text-lg sm:text-xl md:text-2xl mb-4">
-                      Now ${calculateDiscountedPrice(product.price, product.discount).toFixed(2)} ({product.discount}% OFF)
+                      Now Rs{calculateDiscountedPrice(product.price, product.discount).toFixed(2)} ({product.discount}% OFF)
                     </p>
                     <button
                       onClick={() => router.push({

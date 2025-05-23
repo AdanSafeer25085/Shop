@@ -26,7 +26,7 @@ export default function ProductForm({
         />
         <input
           type="text"
-          placeholder="Price"
+          placeholder="Rs"
           value={productForm.price}
           onChange={e => onChange({ ...productForm, price: e.target.value })}
           className="border border-gray-200 p-2 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 text-black placeholder-black"

@@ -531,14 +531,7 @@ export default function Admin() {
               totalPages={totalPages}
               PRODUCTS_PER_PAGE={PRODUCTS_PER_PAGE}
             />
-            {selectedProducts.length > 0 && (
-              <button
-                onClick={applyDiscount}
-                className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md w-full md:w-auto"
-              >
-                Apply Discounts
-              </button>
-            )}
+            
           </section>
         </main>
       </div>

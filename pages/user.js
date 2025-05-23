@@ -238,7 +238,7 @@ export default function UserPage() {
                         <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
                       </div>
                       <div>
-                        <p className="font-bold text-sm mt-1">${prod.price}</p>
+                        <p className="font-bold text-sm mt-1">Rs{prod.price}</p>
                         <button
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
                           onClick={(e) => {

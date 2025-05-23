@@ -75,7 +75,7 @@ export default function Checkout() {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: $${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
+    const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: Rs${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
     const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   };
@@ -108,14 +108,14 @@ export default function Checkout() {
             <p className="text-gray-300">{product.description}</p>
             {product.discount > 0 ? (
               <>
-                <p className="text-gray-400 line-through">${product.price}</p>
+                <p className="text-gray-400 line-through">Rs{product.price}</p>
                 <p className="text-green-400 font-bold text-xl">
-                  ${(product.price - (product.price * product.discount / 100)).toFixed(2)}
+                  Rs{(product.price - (product.price * product.discount / 100)).toFixed(2)}
                   <span className="ml-2 text-sm text-green-300">({product.discount}% OFF)</span>
                 </p>
               </>
             ) : (
-              <p className="text-green-400 font-bold text-xl">${product.price}</p>
+              <p className="text-green-400 font-bold text-xl">Rs{product.price}</p>
             )}
 
             <div className="space-y-3 mt-6">

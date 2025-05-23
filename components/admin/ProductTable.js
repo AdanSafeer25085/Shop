@@ -98,14 +98,14 @@ export default function ProductTable({
                 </td>
                 <td className="p-4">
                   {prod.discount > 0 ? (
-                    <span className="text-green-600 font-semibold">${(prod.price - (prod.price * prod.discount / 100)).toFixed(2)}</span>
+                    <span className="text-green-600 font-semibold">Rs{(prod.price - (prod.price * prod.discount / 100)).toFixed(2)}</span>
                   ) : (
                     <span className="text-gray-700">-</span>
                   )}
                 </td>
                 <td className="p-4 text-sm text-gray-900">{prod.name}</td>
                 <td className="p-4 text-sm text-gray-600">{prod.category}</td>
-                <td className="p-4 text-sm font-medium text-indigo-600">${prod.price}</td>
+                <td className="p-4 text-sm font-medium text-indigo-600">Rs{prod.price}</td>
                 <td className="p-4">
                   <div className="flex gap-2">
                     {prod.images?.map((img, idx) => (
@@ -173,7 +173,7 @@ export default function ProductTable({
               </div>
               <div>
                 <p className="text-gray-500">Price</p>
-                <p className="font-medium text-indigo-600">${prod.price}</p>
+                <p className="font-medium text-indigo-600">Rs{prod.price}</p>
               </div>
             </div>
 
