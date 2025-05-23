@@ -125,14 +125,14 @@ export default function ProductDetail() {
               <div className="space-y-4">
                 {product.discount > 0 ? (
                   <>
-                    <p className="text-2xl text-gray-400 line-through">${product.price}</p>
+                    <p className="text-2xl text-gray-400 line-through">Rs{product.price}</p>
                     <p className="text-3xl font-bold text-green-500">
-                      ${(product.price - (product.price * product.discount / 100)).toFixed(2)}
+                      Rs{(product.price - (product.price * product.discount / 100)).toFixed(2)}
                       <span className="ml-2 text-lg text-green-400">({product.discount}% OFF)</span>
                     </p>
                   </>
                 ) : (
-                  <p className="text-3xl font-bold text-green-500">${product.price}</p>
+                  <p className="text-3xl font-bold text-green-500">Rs{product.price}</p>
                 )}
               </div>
 
