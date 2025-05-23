@@ -34,7 +34,7 @@ export default function Footer() {
         {/* Contact Info */}
         <div className="flex-1 md:items-end flex flex-col gap-2">
           <h3 className="text-shadow-lg text-lg font-semibold mb-2">Contact</h3>
-          <p className="text-gray-300">Email: <a href="mailto:adilameer@gmail.com" className="hover:underline text-blue-300">adilameer@gmail.com</a></p>
+          <p className="text-gray-300">Email: <a href="mailto:adilameer@gmail.com" className="hover:underline text-blue-300">adilameeradi@gmail.com</a></p>
           <p className="text-gray-300">Phone: <a href="tel:03007029003" className="hover:underline text-blue-300">0300-7029003</a></p>
           <p className="text-gray-300">Location: Islamabad, Pakistan</p>
         </div>

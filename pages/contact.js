@@ -11,7 +11,7 @@ export default function Contact() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const mailto = `mailto:adilameer@gmail.com?subject=${encodeURIComponent(form.subject || "Website Feedback")}&body=${encodeURIComponent(
+    const mailto = `mailto:adilameeradi@gmail.com?subject=${encodeURIComponent(form.subject || "Website Feedback")}&body=${encodeURIComponent(
       `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
     )}`;
     window.location.href = mailto;
@@ -26,7 +26,7 @@ export default function Contact() {
         className="fixed top-4 right-4 md:absolute md:top-6 md:right-6 z-10 group"
         style={{ minWidth: 0 }}
       >
-        <span className="inline-flex items-center gap-2 bg-red-600 hover:bg-blue-700 text-white px-2 py-2 md:px-4 md:py-2 rounded-full shadow transition-colors font-semibold text-xs md:text-sm mb-2">
+        <span className="inline-flex items-center gap-2 bg-red-600 hover:bg-blue-700 text-white px-2 py-2 md:px-4 md:py-2 rounded-full shadow transition-colors font-semibold text-xs md:text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
