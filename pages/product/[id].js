@@ -101,7 +101,7 @@ export default function ProductDetail() {
                       src={img}
                       alt={`Image ${idx + 1}`}
                       onClick={() => handleMediaClick("image", img)}
-                      className="h-20 w-20 object-cover rounded-lg cursor-pointer border-2 border-gray-600 hover:border-blue-500 transition-colors"
+                      className="h-16 w-16 object-cover rounded-lg cursor-pointer border-2 border-gray-600 hover:border-blue-500 transition-colors"
                     />
                   ))}
                   {product.video && (

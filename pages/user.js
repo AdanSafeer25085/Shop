@@ -217,7 +217,6 @@ export default function UserPage() {
                     className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition cursor-pointer flex flex-col"
                     style={{
                       background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                      minHeight: "280px",
                       maxHeight: "340px",
                     }}
                   >
@@ -227,8 +226,7 @@ export default function UserPage() {
                         alt={prod.name}
                         width={300}
                         height={160}
-                        className="w-full h-40 object-cover rounded-t"
-                        style={{ minHeight: "160px", maxHeight: "160px" }}
+                        className="h-[100px] md:h-[160px] object-cover rounded-t"
                         priority={index < 8}
                       />
                     )}

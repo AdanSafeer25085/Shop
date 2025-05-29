@@ -46,7 +46,7 @@ export default function Navbar({ onToggleSidebar }) {
           {/* Right Section - Admin Login */}
           <div className="flex items-center gap-4">
             <Link href="/login">
-              <button className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5">
+              <button className="hidden md:block px-4 py-2 rounded-[10px] bg-[#1447E5] hover:bg-blue-700 text-white transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5">
                 Admin Login
               </button>
             </Link>
