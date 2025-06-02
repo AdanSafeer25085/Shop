@@ -89,11 +89,18 @@ export default function Admin() {
   }, []);
 
   const fetchProducts = useCallback(async () => {
-    const { data, error } = await supabase.from("products").select("id, name, price, description, category, images, discount, video");
-    if (error) {
-      console.error("Error fetching products:", error);
-    } else {
-      setProducts(data);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order('purchase_count', { ascending: false });
+      if (error) {
+        console.error("Error fetching products:", error);
+        return;
+      }
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Unexpected error in fetchProducts:", err);
     }
   }, []);
 
@@ -101,10 +108,22 @@ export default function Admin() {
     const isAdmin = localStorage.getItem("isAdmin");
     if (!isAdmin) {
       router.push("/login");
+      return;
     }
 
-    fetchCategories();
-    fetchProducts();
+    console.log("Initial admin page load");
+    const initializeData = async () => {
+      try {
+        await Promise.all([
+          fetchCategories(),
+          fetchProducts()
+        ]);
+      } catch (error) {
+        console.error("Error initializing admin data:", error);
+      }
+    };
+
+    initializeData();
   }, [fetchCategories, fetchProducts, router]);
 
   const generateUniqueFilename = (fileName) => {
@@ -398,14 +417,14 @@ export default function Admin() {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((prod) => {
-      const q = productSearch.toLowerCase();
-      return (
+    const q = productSearch.toLowerCase();
+    return products
+      .filter((prod) =>
         prod.name.toLowerCase().includes(q) ||
         prod.category?.toLowerCase().includes(q) ||
         prod.description?.toLowerCase().includes(q)
-      );
-    });
+      )
+      .sort((a, b) => (b.purchase_count || 0) - (a.purchase_count || 0));
   }, [products, productSearch]);
 
   const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);

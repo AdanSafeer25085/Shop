@@ -29,7 +29,8 @@ export default function UserPage() {
         .select("name");
       const { data: prodData, error: prodError } = await supabase
         .from("products")
-        .select("id, name, price, description, category, images, discount, video");
+        .select("id, name, price, description, category, images, discount, video, purchase_count")
+        .order('purchase_count', { ascending: false });
 
       if (catError) console.error("Category fetch error:", catError);
       if (prodError) console.error("Product fetch error:", prodError);
@@ -209,7 +210,7 @@ export default function UserPage() {
             </div>
           ) : filteredProducts.length > 0 ? (
             <>
-              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2 md:gap-4">
                 {paginatedProducts.map((prod, index) => (
                   <div
                     key={index}
@@ -234,9 +235,12 @@ export default function UserPage() {
                       <div>
                         <h3 className="font-semibold text-base truncate">{prod.name}</h3>
                         <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
+                        <p className="text-gray-400 text-xs">
+                          {prod.purchase_count || 0} {prod.purchase_count === 1 ? 'purchase' : 'purchases'}
+                        </p>
                       </div>
                       <div>
-                        <p className="font-bold text-sm mt-1">Rs{prod.price}</p>
+                        <p className="font-bold text-sm">Rs{prod.price}</p>
                         <button
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
                           onClick={(e) => {

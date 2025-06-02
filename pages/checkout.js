@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { incrementPurchaseCount } from '@/lib/supabaseClient';
 
 export default function Checkout() {
   const router = useRouter();
@@ -52,32 +53,35 @@ export default function Checkout() {
 
   const discountedPrice = product.discount > 0 ? (product.price - (product.price * product.discount / 100)).toFixed(2) : product.price;
 
-  const handleOrder = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
     const errors = {};
-    if (!formData.name.trim()) {
-      errors.name = "Name is required.";
-    }
-    if (!formData.phone.trim()) {
-      errors.phone = "Phone number is required.";
-    } else {
-      const phone = formData.phone.trim();
-      const pkPhoneRegex = /^03\d{9}$/;
-      if (!pkPhoneRegex.test(phone)) {
-        errors.phone = "Enter a valid Pakistani phone number (e.g., 03XXXXXXXXX, 11 digits).";
-      }
-    }
-    if (!formData.address.trim()) {
-      errors.address = "Address is required.";
-    }
-    if (!formData.paymentMethod.trim()) {
-      errors.paymentMethod = "Payment method is required.";
-    }
+    if (!formData.name) errors.name = "Name is required";
+    if (!formData.phone) errors.phone = "Phone number is required";
+    if (!formData.address) errors.address = "Address is required";
+    if (!formData.location) errors.location = "Location is required";
+    if (!formData.paymentMethod) errors.paymentMethod = "Payment method is required";
+    
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: Rs${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
-    const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+    try {
+      // Create order message
+      const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: Rs${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
+      
+      // Open WhatsApp with order details
+      const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
+      window.open(url, "_blank");
+
+      // Show confirmation message to user
+      alert("Please confirm your order on WhatsApp. The purchase count will be updated after order confirmation.");
+      
+    } catch (err) {
+      console.error("Error processing order:", err);
+      alert("There was an error processing your order. Please try again.");
+    }
   };
 
   return (
@@ -197,7 +201,7 @@ export default function Checkout() {
               )}
 
               <button
-                onClick={handleOrder}
+                onClick={handleSubmit}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
               >
                 Order Now
