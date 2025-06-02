@@ -434,7 +434,7 @@ export default function Admin() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 w-full bg-white shadow-md flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
@@ -482,7 +482,7 @@ export default function Admin() {
 
       {/* Sidebar (Desktop) */}
       <div className="flex flex-1">
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 shadow-lg py-8 px-6 min-h-full">
+        <aside className="hidden md:block fixed pt-[90px] top-0 left-0 w-64 h-[100vh] bg-white border-r border-gray-100 shadow-lg py-8 px-6 z-20 overflow-y-auto">
           <nav className="space-y-4">
             <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
             <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>
@@ -503,7 +503,7 @@ export default function Admin() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+        <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full md:ml-64">
           {/* Dashboard Section */}
           <section id="dashboard" className="mb-8">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
