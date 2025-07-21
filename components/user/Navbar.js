@@ -38,7 +38,7 @@ export default function Navbar({ onToggleSidebar }) {
             </button>
             <Link href="/" className="flex items-center gap-2 group">
               <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-white transition-all duration-300">
-                Shop With Adil
+                TrendyNest
               </h1>
             </Link>
           </div>

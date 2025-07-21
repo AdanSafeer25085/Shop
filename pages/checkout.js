@@ -1,12 +1,11 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { incrementPurchaseCount } from '@/lib/supabaseClient';
+import Image from "next/image";
 
 export default function Checkout() {
   const router = useRouter();
-  const { product: productQuery } = router.query;
-  const [product, setProduct] = useState(null);
+  const { name, price, discountedPrice, image } = router.query;
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -18,21 +17,21 @@ export default function Checkout() {
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
-    if (router.isReady && productQuery) {
+    if (router.isReady && name) {
       try {
-        const decoded = decodeURIComponent(productQuery);
-        setProduct(JSON.parse(decoded));
+        // No need to decodeURIComponent or JSON.parse for name, price, discountedPrice, image
+        // as they are directly available in router.query
       } catch (err) {
         console.error("Failed to parse product data:", err);
       }
     }
-  }, [router.isReady, productQuery]);
+  }, [router.isReady, name]);
 
   useEffect(() => {
     if (formData.paymentMethod === "easypaisa") {
-      setPaymentNumber("03007029003");
+      setPaymentNumber("03439200329");
     } else if (formData.paymentMethod === "jazzcash") {
-      setPaymentNumber("03007029003");
+      setPaymentNumber("03278625085");
     } else {
       setPaymentNumber("");
     }
@@ -43,15 +42,13 @@ export default function Checkout() {
     setFormErrors((prev) => ({ ...prev, [e.target.name]: "" })); // Clear error for this field
   };
 
-  if (!product) {
+  if (!name) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6 flex justify-center items-center">
         <p>Loading product...</p>
       </div>
     );
   }
-
-  const discountedPrice = product.discount > 0 ? (product.price - (product.price * product.discount / 100)).toFixed(2) : product.price;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,10 +66,11 @@ export default function Checkout() {
 
     try {
       // Create order message
-      const message = `*Order Details*\n\nProduct: ${product.name}\nPrice: Rs${discountedPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
+      const finalPrice = discountedPrice || price;
+      const message = `*Order Details*\n\nProduct: ${name}\nPrice: Rs ${finalPrice}\n\n*Customer Info:*\nName: ${formData.name}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nLocation: ${formData.location}\nPayment Method: ${formData.paymentMethod.toUpperCase()}${paymentNumber ? `\n\nPayment To: ${paymentNumber}\n📷 *Please send a screenshot of your payment after completing the transaction.*` : ""}`;
       
       // Open WhatsApp with order details
-      const url = `https://wa.me/923007029003?text=${encodeURIComponent(message)}`;
+      const url = `https://wa.me/923124165364?text=${encodeURIComponent(message)}`;
       window.open(url, "_blank");
 
       // Show confirmation message to user
@@ -97,32 +95,30 @@ export default function Checkout() {
         <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
           {/* Left Side - Image */}
           <div className="flex-shrink-0 w-full md:w-1/2">
-            {product.images && product.images[0] && (
-              <img
-                src={product.images[0]}
-                alt={product.name}
-                className="w-full h-auto rounded"
+            {image && (
+              <Image
+                src={image}
+                alt={name || 'Product Image'}
+                width={500}
+                height={500}
+                className="w-full h-auto rounded object-cover"
               />
             )}
           </div>
 
           {/* Right Side - Details + Form */}
           <div className="flex-1 space-y-4 w-full">
-            <h1 className="text-3xl font-bold">{product.name}</h1>
-            <p className="text-gray-300">{product.description}</p>
-            {product.discount > 0 ? (
-              <>
-                <p className="text-gray-400 line-through">Rs{product.price}</p>
-                <p className="text-green-400 font-bold text-xl">
-                  Rs{(product.price - (product.price * product.discount / 100)).toFixed(2)}
-                  <span className="ml-2 text-sm text-green-300">({product.discount}% OFF)</span>
-                </p>
-              </>
+            <h1 className="text-3xl font-bold">{name}</h1>
+            {discountedPrice && discountedPrice !== price ? (
+              <div className="flex items-center gap-4">
+                <p className="text-gray-400 line-through text-xl">Rs {price}</p>
+                <p className="text-green-400 font-bold text-2xl">Rs {discountedPrice}</p>
+              </div>
             ) : (
-              <p className="text-green-400 font-bold text-xl">Rs{product.price}</p>
+              <p className="text-green-400 font-bold text-2xl">Rs {price}</p>
             )}
 
-            <div className="space-y-3 mt-6">
+            <form onSubmit={handleSubmit} className="space-y-3 mt-6">
               <div>
                 <input
                   type="text"
@@ -196,17 +192,17 @@ export default function Checkout() {
                 <p className="text-yellow-300 font-semibold">
                   Send payment to: {paymentNumber}
                   <br />
-                  Name: Adil Ameer
+                  Name: Adan Safeer
                 </p>
               )}
 
               <button
-                onClick={handleSubmit}
+                type="submit"
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded"
               >
                 Order Now
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>

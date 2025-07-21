@@ -9,7 +9,7 @@ export default function Login() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === "admin" && password === "adilameer") {
+    if (username === "adan" && password === "ahadbhindar") {
       localStorage.setItem("isAdmin", "true");
       router.push("/admin");
     } else {

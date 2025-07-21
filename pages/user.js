@@ -224,7 +224,7 @@ export default function UserPage() {
                     {prod.images && prod.images.length > 0 && (
                       <Image
                         src={prod.images[0]}
-                        alt={prod.name}
+                        alt={prod.name || "Product image"}
                         width={300}
                         height={160}
                         className="h-[100px] md:h-[160px] object-cover rounded-t"

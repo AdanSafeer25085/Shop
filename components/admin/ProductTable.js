@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { incrementPurchaseCount, decrementPurchaseCount } from '@/lib/supabaseClient';
+import Image from 'next/image';
 
 export default function ProductTable({
   products,
@@ -115,10 +116,12 @@ export default function ProductTable({
                   <p className="text-gray-500 mb-1">Images</p>
                   <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2">
                     {prod.images.map((img, idx) => (
-                      <img
+                      <Image
                         key={idx}
                         src={img}
-                        alt={`${prod.name}-${idx}`}
+                        alt={`${prod.name} image ${idx + 1}`}
+                        width={64}
+                        height={64}
                         className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg shadow-sm"
                       />
                     ))}

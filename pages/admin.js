@@ -482,7 +482,7 @@ export default function Admin() {
 
       {/* Sidebar (Desktop) */}
       <div className="flex flex-1">
-        <aside className="hidden md:block fixed pt-[90px] top-0 left-0 w-64 h-[100vh] bg-white border-r border-gray-100 shadow-lg py-8 px-6 z-20 overflow-y-auto">
+        <aside className="hidden md:block fixed pt-[64px] top-0 left-0 w-64 h-[100vh] bg-white border-r border-gray-100 shadow-lg py-8 px-6 z-20 overflow-y-auto">
           <nav className="space-y-4">
             <a href="#dashboard" className="block text-indigo-700 font-semibold">Dashboard</a>
             <a href="#products" className="block text-gray-700 hover:text-indigo-600">Products</a>

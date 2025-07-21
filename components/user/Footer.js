@@ -10,7 +10,7 @@ export default function Footer() {
             className="text-2xl font-bold mb-2"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
           >
-            Shop With Adil
+            TrendyNest
           </h2>
           <p className="text-gray-300 mb-4 max-w-[250px]">
             Your trusted destination for quality products and great deals. Shop with confidence and enjoy exclusive discounts!
@@ -34,13 +34,13 @@ export default function Footer() {
         {/* Contact Info */}
         <div className="flex-1 md:items-end flex flex-col gap-2">
           <h3 className="text-shadow-lg text-lg font-semibold mb-2">Contact</h3>
-          <p className="text-gray-300">Email: <a href="mailto:adilameer@gmail.com" className="hover:underline text-blue-300">adilameeradi@gmail.com</a></p>
-          <p className="text-gray-300">Phone: <a href="tel:03007029003" className="hover:underline text-blue-300">0300-7029003</a></p>
+          <p className="text-gray-300">Email: <a href="mailto:akraj25085@gmail.com" className="hover:underline text-blue-300">akraj25085@gmail.com</a></p>
+          <p className="text-gray-300">Phone: <a href="tel:03124165364" className="hover:underline text-blue-300">0312-4165364</a></p>
           <p className="text-gray-300">Location: Islamabad, Pakistan</p>
         </div>
       </div>
       <div className="border-t border-gray-700 text-center py-4 text-gray-400 text-sm bg-gradient-to-r from-gray-900 to-blue-900">
-        &copy; {new Date().getFullYear()} Shop With Adil. All rights reserved.
+        &copy; {new Date().getFullYear()} TrendyNest. All rights reserved.
       </div>
     </footer>
   );
