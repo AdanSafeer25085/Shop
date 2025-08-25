@@ -185,7 +185,7 @@ export default function UserPage() {
         {/* Main Content */}
         <div className="flex-1 p-4 overflow-x-hidden">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-            <h1 className="text-2xl font-bold">Welcome to Adil's Shop</h1>
+            <h1 className="text-2xl font-bold">Welcome to trendyNest</h1>
             <input
               type="text"
               placeholder="Search products..."
