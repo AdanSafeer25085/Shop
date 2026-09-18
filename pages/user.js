@@ -9,6 +9,7 @@ import Footer from "../components/user/Footer";
 
 const HeroSlider = dynamic(() => import("@/components/user/HeroSlider"), {
   ssr: false,
+  loading: () => <div className="w-full h-[300px] sm:h-[420px] md:h-[520px] skeleton rounded-xl" />,
 });
 
 // ── Skeleton card ────────────────────────────────────────────────────────────
@@ -129,6 +130,7 @@ export default function UserPage() {
     <div
       className="min-h-screen"
       style={{ background: "linear-gradient(to bottom, #000428, #001a4a)" }}
+      suppressHydrationWarning
     >
       <Navbar onToggleSidebar={() => setShowSidebar(!showSidebar)} />
 
