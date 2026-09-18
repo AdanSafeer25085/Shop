@@ -7,6 +7,7 @@ import CategoryForm from "../components/admin/CategoryForm";
 import ProductForm from "../components/admin/ProductForm";
 import ProductTable from "../components/admin/ProductTable";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-toastify";
 
 // Simple client-side image optimization (resize) using canvas
 const optimizeImage = (file, maxWidth = 1024, maxHeight = 1024) => {
@@ -270,14 +271,20 @@ export default function Admin() {
         .update(productForm)
         .eq("id", id);
       if (!error) {
+        toast.success("Product updated successfully ✅");
         await fetchProducts();
         resetForm();
+      } else {
+        toast.error("Failed to update product");
       }
     } else {
       const { error } = await supabase.from("products").insert([productForm]);
       if (!error) {
+        toast.success("Product added successfully 🎉");
         await fetchProducts();
         resetForm();
+      } else {
+        toast.error("Failed to add product");
       }
     }
   };
@@ -298,9 +305,10 @@ export default function Admin() {
     const id = products[index].id;
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (!error) {
+      toast.success("Product deleted successfully");
       await fetchProducts();
     } else {
-      alert("Failed to delete product");
+      toast.error("Failed to delete product");
     }
   };
 
@@ -313,20 +321,23 @@ export default function Admin() {
     e.preventDefault();
     const name = categoryInput.trim();
     if (!name || categories.some((cat) => cat.name === name)) {
-      alert("Category exists or invalid.");
+      toast.warn("Category already exists or name is invalid.");
       return;
     }
     const { error } = await supabase.from("categories").insert([{ name }]);
     if (!error) {
+      toast.success(`Category "${name}" added`);
       await fetchCategories();
       setCategoryInput("");
+    } else {
+      toast.error("Failed to add category");
     }
   };
 
   const handleDeleteCategory = async (name) => {
     const productsInCategory = products.filter((p) => p.category === name);
-    const confirmed = confirm(
-      `Delete category "${name}"?\nIt contains ${productsInCategory.length} product(s).`
+    const confirmed = window.confirm(
+      `Delete category "${name}"?\nThis will also delete ${productsInCategory.length} product(s).`
     );
     if (!confirmed) return;
 
@@ -340,8 +351,11 @@ export default function Admin() {
       .eq("category", name);
 
     if (!catError && !prodError) {
+      toast.success(`Category "${name}" and its products deleted`);
       await fetchCategories();
       await fetchProducts();
+    } else {
+      toast.error("Failed to delete category");
     }
   };
 
@@ -376,14 +390,14 @@ export default function Admin() {
 
   const applyDiscount = async () => {
     if (selectedProducts.length === 0) {
-      alert("Select at least one product");
+      toast.warn("Select at least one product");
       return;
     }
 
     for (let id of selectedProducts) {
       const discount = parseFloat(discounts[id]);
       if (isNaN(discount) || discount < 0 || discount > 100) {
-        alert(`Enter a valid discount between 0 and 100 for product ID ${id}`);
+        toast.warn(`Enter a valid discount (0–100) for product ID ${id}`);
         return;
       }
     }
@@ -406,13 +420,13 @@ export default function Admin() {
         if (error) throw error;
       }
 
-      alert("Discounts applied successfully");
+      toast.success("Discounts applied successfully! 🎉");
       await fetchProducts();
       setSelectedProducts([]);
       setDiscounts({});
     } catch (error) {
       console.error("Failed to apply discount:", error);
-      alert("Failed to apply discount: " + error.message);
+      toast.error("Failed to apply discount: " + error.message);
     }
   };
 
@@ -506,11 +520,49 @@ export default function Admin() {
         <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full md:ml-64">
           {/* Dashboard Section */}
           <section id="dashboard" className="mb-8">
-            <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome, Admin!</h1>
-                <p className="text-gray-500">Manage your products and categories from this dashboard.</p>
-              </div>
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-4">
+              <h1 className="text-2xl font-bold text-gray-800 mb-1">Welcome, Admin! 👋</h1>
+              <p className="text-gray-500 text-sm">Manage your products and categories from this dashboard.</p>
+            </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Total Products",
+                  value: products.length,
+                  icon: "📦",
+                  color: "from-blue-500 to-blue-600",
+                },
+                {
+                  label: "Categories",
+                  value: categories.length,
+                  icon: "🏷️",
+                  color: "from-purple-500 to-purple-600",
+                },
+                {
+                  label: "On Sale",
+                  value: products.filter((p) => p.discount > 0).length,
+                  icon: "🔥",
+                  color: "from-red-500 to-orange-500",
+                },
+                {
+                  label: "Total Purchases",
+                  value: products.reduce((sum, p) => sum + (p.purchase_count || 0), 0),
+                  icon: "🛒",
+                  color: "from-green-500 to-emerald-600",
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className={`bg-gradient-to-br ${stat.color} rounded-xl p-4 text-white shadow-lg`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{stat.icon}</span>
+                    <span className="text-3xl font-extrabold">{stat.value}</span>
+                  </div>
+                  <p className="text-white/80 text-sm font-medium">{stat.label}</p>
+                </div>
+              ))}
             </div>
           </section>
 

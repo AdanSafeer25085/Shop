@@ -1,14 +1,44 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import Masonry from "react-masonry-css";
 import Navbar from "../components/user/Navbar";
 import dynamic from "next/dynamic";
 import supabase from "@/lib/supabaseClient";
 import Image from "next/image";
 import Footer from "../components/user/Footer";
 
-const HeroSlider = dynamic(() => import("@/components/user/HeroSlider"), { ssr: false });
+const HeroSlider = dynamic(() => import("@/components/user/HeroSlider"), {
+  ssr: false,
+});
+
+// ── Skeleton card ────────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="skeleton rounded-xl h-[280px] md:h-[320px]" />
+  );
+}
+
+// ── Empty state ──────────────────────────────────────────────────────────────
+function EmptyState({ query }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <span className="text-6xl mb-4">🔍</span>
+      <h3 className="text-xl font-bold text-white mb-2">No products found</h3>
+      <p className="text-white/50 text-sm max-w-xs">
+        {query
+          ? `No results for "${query}". Try a different search.`
+          : "No products in this category yet. Check back soon!"}
+      </p>
+    </div>
+  );
+}
+
+// ── Is "new" (added in last 7 days) ─────────────────────────────────────────
+function isNew(created_at) {
+  if (!created_at) return false;
+  const diff = Date.now() - new Date(created_at).getTime();
+  return diff < 7 * 24 * 60 * 60 * 1000;
+}
 
 export default function UserPage() {
   const [categories, setCategories] = useState([]);
@@ -19,9 +49,10 @@ export default function UserPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage, setProductsPerPage] = useState(9); // Default for large screens
+  const [productsPerPage, setProductsPerPage] = useState(18);
   const router = useRouter();
 
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       const { data: catData, error: catError } = await supabase
@@ -29,260 +60,334 @@ export default function UserPage() {
         .select("name");
       const { data: prodData, error: prodError } = await supabase
         .from("products")
-        .select("id, name, price, description, category, images, discount, video, purchase_count")
-        .order('purchase_count', { ascending: false });
+        .select(
+          "id, name, price, description, category, images, discount, video, purchase_count, created_at"
+        )
+        .order("purchase_count", { ascending: false });
 
       if (catError) console.error("Category fetch error:", catError);
       if (prodError) console.error("Product fetch error:", prodError);
 
-      if (catData) {
-        const uniqueCats = [...new Set(catData.map((c) => c.name))];
-        setCategories(uniqueCats);
-      }
-      if (prodData) {
-        setProducts(prodData);
-      }
+      if (catData) setCategories([...new Set(catData.map((c) => c.name))]);
+      if (prodData) setProducts(prodData);
       setLoading(false);
     };
-
     fetchData();
   }, []);
 
+  // Debounce search
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
+    const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
   // Responsive products per page
   useEffect(() => {
-    function updateProductsPerPage() {
-      if (window.innerWidth < 640) {
-        setProductsPerPage(21); // sm
-      } else if (window.innerWidth < 1024) {
-        setProductsPerPage(35); // md
-      } else {
-        setProductsPerPage(49); // lg and up
-      }
+    function update() {
+      if (window.innerWidth < 640) setProductsPerPage(12);
+      else if (window.innerWidth < 1024) setProductsPerPage(20);
+      else setProductsPerPage(28);
     }
-    updateProductsPerPage();
-    window.addEventListener("resize", updateProductsPerPage);
-    return () => window.removeEventListener("resize", updateProductsPerPage);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
+  // Reset page on filter change
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters/search change
+    setCurrentPage(1);
   }, [selectedCategory, debouncedSearchQuery, productsPerPage]);
 
-  const filteredProducts = useMemo(() => products.filter((p) => {
-    const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-    const matchesSearch = p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  }), [products, selectedCategory, debouncedSearchQuery]);
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((p) => {
+        const matchesCategory = selectedCategory
+          ? p.category === selectedCategory
+          : true;
+        const matchesSearch = p.name
+          .toLowerCase()
+          .includes(debouncedSearchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      }),
+    [products, selectedCategory, debouncedSearchQuery]
+  );
 
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * productsPerPage,
     currentPage * productsPerPage
   );
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleViewProduct = (product) => {
     router.push({
       pathname: "/product/[id]",
-      query: { id: product.id || product.name, data: JSON.stringify(product) },
+      query: { id: product.id, data: JSON.stringify(product) },
     });
   };
 
-  const breakpointColumnsObj = {
-    default: 3,
-    1024: 2,
-    640: 1,
-  };
-
   return (
-    <div>
+    <div
+      className="min-h-screen"
+      style={{ background: "linear-gradient(to bottom, #000428, #001a4a)" }}
+    >
       <Navbar onToggleSidebar={() => setShowSidebar(!showSidebar)} />
 
-      <div className="flex min-h-screen text-white max-w-[1900px] mx-auto pt-16">
-        {/* Sidebar */}
-        <div
-          className={`fixed top-16 left-0 md:static bg-gray-900 md:bg-transparent h-[calc(100vh-4rem)] w-60 p-4 transition-transform transform ${
-            showSidebar ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 z-30 md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:overflow-y-auto md:block`}
-          style={{ maxHeight: 'calc(100vh - 4rem)', overflowY: 'auto' }}
+      <div className="flex max-w-[1900px] mx-auto pt-16">
+        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+        <aside
+          className={`fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] w-56 p-5 transition-transform duration-300 overflow-y-auto
+            md:sticky md:translate-x-0 md:block
+            ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+          `}
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(0,4,40,0.97), rgba(0,30,80,0.97))",
+            borderRight: "1px solid rgba(255,255,255,0.07)",
+          }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Categories</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-sm font-bold text-white/50 uppercase tracking-widest">
+              Categories
+            </h2>
             <button
               onClick={() => setShowSidebar(false)}
-              className="md:hidden text-white p-1 rounded hover:bg-gray-700"
+              className="md:hidden text-white/60 hover:text-white text-lg"
             >
               ✕
             </button>
           </div>
-          <ul className="space-y-2">
-            <li
-              onClick={() => setSelectedCategory("")}
-              className={`cursor-pointer px-2 py-1 rounded ${
-                selectedCategory === ""
-                  ? "text-white font-semibold"
-                  : "hover:bg-gray-700 text-gray-300"
-              }`}
-              style={
-                selectedCategory === ""
-                  ? {
-                      background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                    }
-                  : {}
-              }
-            >
-              All
-            </li>
-            {categories.map((cat, index) => (
-              <li
-                key={index}
-                onClick={() => setSelectedCategory(cat)}
-                className={`cursor-pointer px-2 py-1 rounded ${
-                  selectedCategory === cat
-                    ? "text-white font-semibold"
-                    : "hover:bg-gray-700 text-gray-300"
+
+          <ul className="space-y-1">
+            {/* All */}
+            <li>
+              <button
+                onClick={() => setSelectedCategory("")}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  selectedCategory === ""
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    : "text-white/60 hover:bg-white/10 hover:text-white"
                 }`}
-                style={
-                  selectedCategory === cat
-                    ? {
-                        background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                      }
-                    : {}
-                }
               >
-                {cat}
+                🏷️ All Products
+              </button>
+            </li>
+
+            {categories.map((cat, index) => (
+              <li key={index}>
+                <button
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    selectedCategory === cat
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      : "text-white/60 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {cat}
+                </button>
               </li>
             ))}
-            <li className="mt-6 md:hidden">
+
+            {/* Admin login (mobile only) */}
+            <li className="mt-8 md:hidden">
               <Link href="/login">
-                <button
-                  className="w-full text-white px-4 py-1 rounded hover:shadow-md hover:-translate-y-0.5 transition"
-                  style={{
-                    background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                  }}
-                >
-                  Admin Login
+                <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/10 transition">
+                  ⚙️ Admin Login
                 </button>
               </Link>
             </li>
           </ul>
-        </div>
+        </aside>
 
-        {/* Mobile overlay */}
+        {/* Sidebar overlay (mobile) */}
         {showSidebar && (
           <div
             onClick={() => setShowSidebar(false)}
-            className="fixed inset-0 bg-black opacity-50 z-20 md:hidden"
-          ></div>
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden"
+          />
         )}
 
-        {/* Main Content */}
-        <div className="flex-1 p-4 overflow-x-hidden">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-            <h1 className="text-2xl font-bold">Welcome to trendyNest</h1>
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full md:w-1/3 p-2 rounded text-white placeholder-gray-400 hover:placeholder-white focus:outline-none"
-              style={{
-                background: "linear-gradient(to right, #000428, #004e92, #000428)",
-              }}
-            />
+        {/* ── Main Content ─────────────────────────────────────────────────── */}
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden min-w-0">
+          {/* Top bar: title + search */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">
+                Welcome to TrendyNest
+              </h1>
+              <p className="text-white/40 text-sm mt-0.5">
+                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} available
+              </p>
+            </div>
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/40 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+              />
+            </div>
           </div>
 
-          <div className="w-full md:max-w-full mb-8">
+          {/* Hero Slider */}
+          <div className="mb-8">
             <HeroSlider />
           </div>
 
+          {/* Product Grid */}
           {loading ? (
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-gray-800 animate-pulse rounded h-[340px]" />
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <SkeletonCard key={i} />
               ))}
             </div>
           ) : filteredProducts.length > 0 ? (
             <>
-              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2 md:gap-4">
-                {paginatedProducts.map((prod, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleViewProduct(prod)}
-                    className="bg-gray-800 border border-gray-700 rounded shadow hover:shadow-lg transition cursor-pointer flex flex-col"
-                    style={{
-                      background: "linear-gradient(to right, #000428, #004e92, #000428)",
-                      maxHeight: "340px",
-                    }}
-                  >
-                    {prod.images && prod.images.length > 0 && (
-                      <Image
-                        src={prod.images[0]}
-                        alt={prod.name || "Product image"}
-                        width={300}
-                        height={160}
-                        className="h-[100px] md:h-[160px] object-cover rounded-t"
-                        priority={index < 8}
-                      />
-                    )}
-                    <div className="p-1 flex-1 flex flex-col">
-                      <div>
-                        <h3 className="font-semibold text-base truncate">{prod.name}</h3>
-                        <p className="text-gray-400 text-xs line-clamp-2">{prod.description}</p>
-                        <p className="text-gray-400 text-xs">
-                          {prod.purchase_count || 0} {prod.purchase_count === 1 ? 'purchase' : 'purchases'}
-                        </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                {paginatedProducts.map((prod, index) => {
+                  const discountedPrice =
+                    prod.discount > 0
+                      ? prod.price - (prod.price * prod.discount) / 100
+                      : null;
+                  const newItem = isNew(prod.created_at);
+
+                  return (
+                    <div
+                      key={prod.id || index}
+                      onClick={() => handleViewProduct(prod)}
+                      className="product-card group relative rounded-xl overflow-hidden cursor-pointer border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40 flex flex-col"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(0,4,40,0.9), rgba(0,60,120,0.85))",
+                        maxHeight: "320px",
+                      }}
+                    >
+                      {/* Badges */}
+                      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                        {prod.discount > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow">
+                            -{prod.discount}%
+                          </span>
+                        )}
+                        {newItem && (
+                          <span className="badge-new bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow">
+                            NEW
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-bold text-sm">Rs{prod.price}</p>
+
+                      {/* Image */}
+                      {prod.images && prod.images.length > 0 ? (
+                        <div className="overflow-hidden h-[100px] md:h-[160px] flex-shrink-0">
+                          <Image
+                            src={prod.images[0]}
+                            alt={prod.name || "Product image"}
+                            width={300}
+                            height={160}
+                            className="product-card-img w-full h-full object-cover"
+                            priority={index < 7}
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-[100px] md:h-[160px] flex-shrink-0 flex items-center justify-center bg-white/5">
+                          <span className="text-4xl">📦</span>
+                        </div>
+                      )}
+
+                      {/* Info */}
+                      <div className="p-2 flex flex-col flex-1 gap-1">
+                        <h3 className="font-semibold text-xs sm:text-sm text-white truncate leading-tight">
+                          {prod.name}
+                        </h3>
+                        <p className="text-white/40 text-[10px] line-clamp-2 leading-snug">
+                          {prod.description}
+                        </p>
+
+                        {/* Purchase count */}
+                        {prod.purchase_count > 0 && (
+                          <p className="text-[10px] text-orange-400 font-medium">
+                            🔥 {prod.purchase_count} sold
+                          </p>
+                        )}
+
+                        {/* Price */}
+                        <div className="mt-auto">
+                          {discountedPrice ? (
+                            <div>
+                              <span className="text-white/40 text-[10px] line-through">
+                                Rs{prod.price}
+                              </span>
+                              <span className="block text-green-400 font-bold text-xs sm:text-sm">
+                                Rs{discountedPrice.toFixed(0)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-white font-bold text-xs sm:text-sm">
+                              Rs{prod.price}
+                            </span>
+                          )}
+                        </div>
+
                         <button
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full text-xs"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewProduct(prod);
                           }}
+                          className="mt-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] sm:text-xs font-semibold py-1.5 rounded-lg w-full transition-all duration-200"
                         >
                           Buy Now
                         </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-6">
+                <div className="flex justify-center items-center gap-3 mt-8">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50 hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                    className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm disabled:opacity-40 hover:bg-white/20 transition-all duration-200"
                   >
-                    Previous
+                    ← Prev
                   </button>
-                  <span className="text-sm text-gray-300">
-                    Page {currentPage} of {totalPages}
+                  <span className="text-white/60 text-sm">
+                    {currentPage} / {totalPages}
                   </span>
                   <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50 hover:bg-indigo-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                    className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm disabled:opacity-40 hover:bg-white/20 transition-all duration-200"
                   >
-                    Next
+                    Next →
                   </button>
                 </div>
               )}
             </>
           ) : (
-            <p className="text-gray-400">No products found.</p>
+            <EmptyState query={debouncedSearchQuery} />
           )}
-        </div>
+        </main>
       </div>
+
       <Footer />
     </div>
   );

@@ -1,32 +1,74 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --brand-dark: #000428;
+  --brand-mid: #004e92;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-.masonry-column {
-  background-clip: padding-box;
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #004e92; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #0072cc; }
+
+/* ─── Shimmer skeleton loader ─── */
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
 }
+.skeleton {
+  background: linear-gradient(90deg, #1a1f2e 25%, #232a3a 50%, #1a1f2e 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 0.5rem;
+}
+
+/* ─── Product card hover zoom ─── */
+.product-card-img {
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.product-card:hover .product-card-img {
+  transform: scale(1.06);
+}
+
+/* ─── Badge pulse (new arrival) ─── */
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+.badge-new {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* ─── Slick dots — white brand style ─── */
+.slick-dots li button:before {
+  color: rgba(255,255,255,0.6) !important;
+  font-size: 10px !important;
+  opacity: 1 !important;
+  transition: all 0.2s;
+}
+.slick-dots li.slick-active button:before {
+  color: #fff !important;
+  font-size: 14px !important;
+  opacity: 1 !important;
+}
+.slick-dots {
+  bottom: 16px !important;
+}
+
+/* ─── Masonry grid ─── */
 .masonry-column {
   background-clip: padding-box;
 }
@@ -37,15 +79,11 @@ body {
   border-radius: 0.5rem;
 }
 
-/* Make react-slick dots white */
-.slick-dots li button:before {
-  color: #fff !important;
-  opacity: 1 !important;
+/* ─── Smooth buy button pulse ─── */
+@keyframes buy-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6); }
+  70%       { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
 }
-.slick-dots li.slick-active button:before {
-  color: #fff !important;
-  opacity: 1 !important;
-  font-size: 16px !important;
+.btn-buy-pulse {
+  animation: buy-pulse 2s ease-in-out infinite;
 }
-
-
